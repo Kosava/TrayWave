@@ -2,7 +2,7 @@
 name = "traywave"
 version = "0.1.2"
 description = "System tray radio player"
-authors = [{name = "Alen", email = ""}]
+authors = [{name = "Košava", email = "kosava@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
