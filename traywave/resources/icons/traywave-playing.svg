@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" id="icon-playing">
+                    <!-- Radio telo -->
+                    <rect x="15" y="25" width="50" height="35" rx="4" fill="#4a9eff" stroke="#2a6edf" stroke-width="2"/>
+                    
+                    <!-- Zvučnik (mreža) -->
+                    <circle cx="32" cy="42" r="10" fill="none" stroke="#1a4a8f" stroke-width="1.5"/>
+                    <circle cx="32" cy="42" r="7" fill="none" stroke="#1a4a8f" stroke-width="1"/>
+                    <circle cx="32" cy="42" r="4" fill="none" stroke="#1a4a8f" stroke-width="0.8"/>
+                    
+                    <!-- Display ekran -->
+                    <rect x="46" y="32" width="14" height="8" rx="1" fill="#0a2a4f"/>
+                    <rect x="48" y="34" width="10" height="1" rx="0.5" fill="#4a9eff">
+                        <animate attributeName="width" values="2;10;2" dur="2s" repeatCount="indefinite"/>
+                    </rect>
+                    <rect x="48" y="37" width="7" height="1" rx="0.5" fill="#4a9eff">
+                        <animate attributeName="width" values="7;3;7" dur="1.5s" repeatCount="indefinite"/>
+                    </rect>
+                    
+                    <!-- Dugmići -->
+                    <circle cx="52" cy="48" r="2.5" fill="#ff6b6b">
+                        <animate attributeName="opacity" values="1;0.5;1" dur="1s" repeatCount="indefinite"/>
+                    </circle>
+                    <circle cx="58" cy="48" r="2" fill="#333"/>
+                    
+                    <!-- Antena -->
+                    <line x1="60" y1="25" x2="68" y2="12" stroke="#2a6edf" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="68" cy="10" r="2" fill="#ff6b6b">
+                        <animate attributeName="opacity" values="1;0.3;1" dur="0.8s" repeatCount="indefinite"/>
+                    </circle>
+                    
+                    <!-- Zvučni talasi -->
+                    <path d="M 8 40 Q 10 35, 12 40" stroke="#4a9eff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.8">
+                        <animate attributeName="d" values="M 8 40 Q 10 35, 12 40;&#xA;                                         M 8 40 Q 10 45, 12 40;&#xA;                                         M 8 40 Q 10 35, 12 40" dur="1s" repeatCount="indefinite"/>
+                    </path>
+                    <path d="M 5 40 Q 7 32, 9 40" stroke="#4a9eff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.5">
+                        <animate attributeName="d" values="M 5 40 Q 7 32, 9 40;&#xA;                                         M 5 40 Q 7 48, 9 40;&#xA;                                         M 5 40 Q 7 32, 9 40" dur="1s" repeatCount="indefinite" begin="0.2s"/>
+                    </path>
+                    
+                    <path d="M 68 40 Q 70 35, 72 40" stroke="#4a9eff" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.8">
+                        <animate attributeName="d" values="M 68 40 Q 70 35, 72 40;&#xA;                                         M 68 40 Q 70 45, 72 40;&#xA;                                         M 68 40 Q 70 35, 72 40" dur="1s" repeatCount="indefinite" begin="0.3s"/>
+                    </path>
+                    <path d="M 71 40 Q 73 32, 75 40" stroke="#4a9eff" stroke-width="2.5" fill="none" stroke-linecap="round" opacity="0.5">
+                        <animate attributeName="d" values="M 71 40 Q 73 32, 75 40;&#xA;                                         M 71 40 Q 73 48, 75 40;&#xA;                                         M 71 40 Q 73 32, 75 40" dur="1s" repeatCount="indefinite" begin="0.5s"/>
+                    </path>
+                    
+                    <!-- Ručica -->
+                    <rect x="36" y="22" width="8" height="4" rx="2" fill="#2a6edf"/>
+                </svg>

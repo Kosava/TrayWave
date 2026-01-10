@@ -1,0 +1,138 @@
+{
+  "Pop": [
+    [
+      "Groove Salad",
+      "http://ice1.somafm.com/groovesalad-128-mp3"
+    ],
+    [
+      "Beat Blender",
+      "http://ice1.somafm.com/beatblender-128-mp3"
+    ]
+  ],
+  "Rock": [
+    [
+      "Boot Liquor",
+      "http://ice1.somafm.com/bootliquor-128-mp3"
+    ],
+    [
+      "Seven Inch Soul",
+      "http://ice1.somafm.com/7soul-128-mp3"
+    ]
+  ],
+  "Electronic": [
+    [
+      "Def Con Radio",
+      "http://ice1.somafm.com/defcon-128-mp3"
+    ],
+    [
+      "Drone Zone",
+      "http://ice1.somafm.com/dronezone-128-mp3"
+    ],
+    [
+      "Space Station",
+      "http://ice1.somafm.com/spacestation-128-mp3"
+    ]
+  ],
+  "Jazz": [
+    [
+      "Sonic Universe",
+      "http://ice1.somafm.com/sonicuniverse-128-mp3"
+    ],
+    [
+      "Suburbs of Goa",
+      "http://ice1.somafm.com/suburbsofgoa-128-mp3"
+    ]
+  ],
+  "Latin": [
+    [
+      "Fluid",
+      "http://ice1.somafm.com/fluid-128-mp3"
+    ],
+    [
+      "Mission Control",
+      "http://ice1.somafm.com/missioncontrol-128-mp3"
+    ]
+  ],
+  "EX-YU": [
+    [
+      "Radio Beograd 1",
+      "http://radio.beograd.rs:8010/radiobelgrade1.mp3"
+    ],
+    [
+      "Radio Beograd 2",
+      "http://radio.beograd.rs:8020/radiobelgrade2.mp3"
+    ],
+    [
+      "Radio 202",
+      "http://live.radio202.rs:9531/radio202.mp3"
+    ],
+    [
+      "Naxi Radio",
+      "http://109.206.96.34:8100"
+    ],
+    [
+      "Play Radio",
+      "http://stream.playradio.rs:8001/play.mp3"
+    ],
+    [
+      "Radio S",
+      "http://streaming.radios.rs:8000/radios.mp3"
+    ],
+    [
+      "Hit FM",
+      "http://streaming.hitfm.rs:8000/hitfm.mp3"
+    ],
+    [
+      "Radio Karolina",
+      "http://s8.iqstreaming.com:8042/stream"
+    ],
+    [
+      "Radio Antena",
+      "http://192.111.140.11:8090/stream"
+    ],
+    [
+      "OK Radio",
+      "http://live.okradio.net:8010/ok128.mp3"
+    ],
+    [
+      "Radio Bum",
+      "http://playerservices.streamtheworld.com/api/livestream-redirect/BUMMPAAC.aac"
+    ],
+    [
+      "Radio AS FM",
+      "http://eu1.fastcast4u.com:5126/stream"
+    ],
+    [
+      "Narodni Radio",
+      "http://eu1.fastcast4u.com:5238/stream"
+    ],
+    [
+      "Radio Gallus",
+      "http://109.206.96.34:8030"
+    ],
+    [
+      "Antena Zagreb",
+      "http://live.antenazagreb.hr:8000/stream"
+    ],
+    [
+      "Narodni Radio HR",
+      "http://live.narodni.hr:8059/stream"
+    ],
+    [
+      "Radio Dalmacija",
+      "http://streaming.zadar.net:8020/"
+    ],
+    [
+      "Radio 101",
+      "http://stream.radio101.hr:8000/101.mp3"
+    ],
+    [
+      "Otvoreni Radio",
+      "http://144.76.172.23:7110/stream"
+    ],
+    [
+      "Radio Student",
+      "http://kruljo.radiostudent.si:8000/hiq"
+    ]
+  ]
+}

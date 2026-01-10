@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" id="icon-muted">
+                    <!-- Radio telo -->
+                    <rect x="15" y="25" width="50" height="35" rx="4" fill="#ff6b6b" stroke="#dd4b4b" stroke-width="2"/>
+                    
+                    <!-- Zvučnik (mreža) -->
+                    <circle cx="32" cy="42" r="10" fill="none" stroke="#aa3b3b" stroke-width="1.5"/>
+                    <circle cx="32" cy="42" r="7" fill="none" stroke="#aa3b3b" stroke-width="1"/>
+                    <circle cx="32" cy="42" r="4" fill="none" stroke="#aa3b3b" stroke-width="0.8"/>
+                    
+                    <!-- Display ekran -->
+                    <rect x="46" y="32" width="14" height="8" rx="1" fill="#4a1a1a"/>
+                    <rect x="48" y="34" width="10" height="1" rx="0.5" fill="#ff6b6b"/>
+                    <rect x="48" y="37" width="7" height="1" rx="0.5" fill="#ff6b6b"/>
+                    
+                    <!-- Dugmići -->
+                    <circle cx="52" cy="48" r="2.5" fill="#dd4b4b"/>
+                    <circle cx="58" cy="48" r="2" fill="#aa3b3b"/>
+                    
+                    <!-- Antena -->
+                    <line x1="60" y1="25" x2="68" y2="12" stroke="#dd4b4b" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="68" cy="10" r="2" fill="#ff6b6b"/>
+                    
+                    <!-- X preko zvučnika -->
+                    <line x1="24" y1="34" x2="40" y2="50" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+                    <line x1="40" y1="34" x2="24" y2="50" stroke="#fff" stroke-width="3" stroke-linecap="round" opacity="0.9"/>
+                    
+                    <!-- Zvučni talasi (prekriženi) -->
+                    <path d="M 8 40 Q 10 37, 12 40" stroke="#ff6b6b" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.3"/>
+                    <path d="M 68 40 Q 70 37, 72 40" stroke="#ff6b6b" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.3"/>
+                    
+                    <!-- Ručica -->
+                    <rect x="36" y="22" width="8" height="4" rx="2" fill="#dd4b4b"/>
+                </svg>

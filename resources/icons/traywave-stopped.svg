@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80" id="icon-stopped">
+                    <!-- Radio telo -->
+                    <rect x="15" y="25" width="50" height="35" rx="4" fill="#666" stroke="#555" stroke-width="2"/>
+                    
+                    <!-- Zvučnik (mreža) -->
+                    <circle cx="32" cy="42" r="10" fill="none" stroke="#444" stroke-width="1.5"/>
+                    <circle cx="32" cy="42" r="7" fill="none" stroke="#444" stroke-width="1"/>
+                    <circle cx="32" cy="42" r="4" fill="none" stroke="#444" stroke-width="0.8"/>
+                    
+                    <!-- Display ekran (ugašen) -->
+                    <rect x="46" y="32" width="14" height="8" rx="1" fill="#222"/>
+                    
+                    <!-- Dugmići -->
+                    <circle cx="52" cy="48" r="2.5" fill="#444"/>
+                    <circle cx="58" cy="48" r="2" fill="#333"/>
+                    
+                    <!-- Antena -->
+                    <line x1="60" y1="25" x2="68" y2="12" stroke="#555" stroke-width="2" stroke-linecap="round"/>
+                    <circle cx="68" cy="10" r="2" fill="#444"/>
+                    
+                    <!-- Zvučni talasi (bledi) -->
+                    <path d="M 8 40 Q 10 37, 12 40" stroke="#444" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.3"/>
+                    <path d="M 68 40 Q 70 37, 72 40" stroke="#444" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.3"/>
+                    
+                    <!-- Ručica -->
+                    <rect x="36" y="22" width="8" height="4" rx="2" fill="#555"/>
+                </svg>
