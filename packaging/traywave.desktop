@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=TrayWave
+Comment=System tray radio player
+Exec=traywave
+Icon=traywave
+Terminal=false
+Categories=Audio;AudioVideo;Player;
+StartupNotify=false
