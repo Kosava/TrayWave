@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-traywave = "main:main"
+traywave = "traywave.app:main"
 
 [tool.setuptools.packages.find]
 where = ["."]
