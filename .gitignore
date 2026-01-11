@@ -29,3 +29,5 @@ Thumbs.db
 
 # User config
 config/stations.json
+__pycache__/
+*.pyc

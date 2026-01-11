@@ -2,7 +2,6 @@
 Main tray icon and application
 """
 import os
-from importlib.resources import files
 from PyQt6.QtWidgets import QSystemTrayIcon, QMenu, QApplication
 from PyQt6.QtGui import QIcon, QCursor
 from PyQt6.QtCore import Qt, QTimer
@@ -31,6 +30,9 @@ class TrayWave(QSystemTrayIcon):
         self.now_playing_artist = None
         self.now_playing_title = None
         
+        # Icon source tracking
+        self._icon_source_logged = False
+        
         # Initial setup
         self._update_icon()
         self.setToolTip("TrayWave - Radio Player")
@@ -46,7 +48,102 @@ class TrayWave(QSystemTrayIcon):
         
         # Show tray icon
         self.show()
+    
+    def _find_icon_path(self, icon_name: str) -> str:
+        """
+        Find icon file path - works for both development and installed package
+        Returns absolute path or None
         
+        Search order (IMPORTANT - installed paths first!):
+        1. Package resources (pip/AUR installed)
+        2. System-wide paths (AUR installation)
+        3. Development paths (running from source)
+        """
+        paths_to_check = []
+        
+        # 1. Try package resources FIRST (for installed package)
+        try:
+            from importlib.resources import files
+            icon_path = str(files('traywave.resources.icons').joinpath(icon_name))
+            paths_to_check.append(('Package resources', icon_path))
+        except Exception:
+            pass
+        
+        # 2. System-wide installation paths (AUR installs here)
+        system_paths = [
+            (f"/usr/share/traywave/icons/{icon_name}", 'System traywave'),
+            (f"/usr/share/icons/hicolor/128x128/apps/{icon_name}", 'Hicolor 128x128'),
+            (f"/usr/share/icons/hicolor/scalable/apps/{icon_name.replace('.png', '.svg')}", 'Hicolor scalable'),
+            (f"/usr/local/share/traywave/icons/{icon_name}", 'Local traywave'),
+        ]
+        for path, desc in system_paths:
+            paths_to_check.append((desc, path))
+        
+        # 3. Development paths (running from source) - LAST
+        # From traywave/ui/tray.py go up to project root
+        try:
+            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+            paths_to_check.append(('Project root', os.path.join(project_root, 'resources', 'icons', icon_name)))
+            
+            # traywave/resources/icons/
+            traywave_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+            paths_to_check.append(('Traywave dev', os.path.join(traywave_dir, 'resources', 'icons', icon_name)))
+        except Exception:
+            pass
+        
+        # Check each path
+        for source, path in paths_to_check:
+            if os.path.exists(path):
+                # Log source only once per session
+                if not self._icon_source_logged:
+                    print(f"✓ Loading icons from: {source}")
+                    print(f"  Example: {path}")
+                    self._icon_source_logged = True
+                return path
+        
+        # Icon not found - show debug info
+        print(f"✗ Icon not found: {icon_name}")
+        print(f"  Searched {len(paths_to_check)} locations:")
+        for source, path in paths_to_check[:5]:
+            print(f"    [{source}] {path}")
+        return None
+    
+    def _update_icon(self):
+        """Update tray icon based on state"""
+        if self.engine.is_muted():
+            icon_name = "traywave-muted.png"
+            fallback = "audio-volume-muted"
+        elif self.engine.is_playing():
+            icon_name = "traywave-playing.png"
+            fallback = "audio-radio"
+        else:
+            icon_name = "traywave-stopped.png"
+            fallback = "audio-card"
+        
+        # Try PNG first
+        icon_path = self._find_icon_path(icon_name)
+        
+        if icon_path:
+            icon = QIcon(icon_path)
+            if not icon.isNull():
+                self.setIcon(icon)
+                return
+        
+        # Try SVG version
+        svg_name = icon_name.replace('.png', '.svg')
+        svg_path = self._find_icon_path(svg_name)
+        
+        if svg_path:
+            icon = QIcon(svg_path)
+            if not icon.isNull():
+                self.setIcon(icon)
+                return
+        
+        # Final fallback to theme icon
+        if not self._icon_source_logged:
+            print(f"⚠ Using system theme icon: {fallback}")
+        self.setIcon(QIcon.fromTheme(fallback, QIcon.fromTheme("audio-radio")))
+    
     def setup_timers(self):
         """Setup various timers"""
         # Tooltip update timer
@@ -70,7 +167,7 @@ class TrayWave(QSystemTrayIcon):
         """Build the context menu"""
         self.menu = QMenu()
         
-        # Now Playing header - EXTENDED VERSION
+        # Now Playing header
         if self.engine.current_station:
             header = self.menu.addAction(f"🎵 Now playing:")
             header.setEnabled(False)
@@ -82,24 +179,19 @@ class TrayWave(QSystemTrayIcon):
             # Show song if available
             if self.now_playing_title:
                 if self.now_playing_artist:
-                    # Has both artist and title
                     song_line = self.menu.addAction(f"    🎵 {self.now_playing_artist} - {self.now_playing_title}")
                 else:
-                    # Only title
                     song_line = self.menu.addAction(f"    🎵 {self.now_playing_title}")
                 song_line.setEnabled(False)
-                # Add separator after song
                 self.menu.addSeparator()
             else:
-                # No song, just separator
                 self.menu.addSeparator()
         else:
-            # Nothing is playing
             self.menu.addSeparator()
         
         # Radio Categories
         for category, stations in self.stations_manager.stations.items():
-            if stations:  # Only if category has stations
+            if stations:
                 self._add_category_menu(category, stations)
         
         self.menu.addSeparator()
@@ -123,7 +215,7 @@ class TrayWave(QSystemTrayIcon):
         self.menu.addAction("Stop", self.engine.stop)
         self.mute_action = self.menu.addAction("Mute", self._toggle_mute)
         
-        # About item with separator above
+        # About
         self.menu.addSeparator()
         self.menu.addAction("About", self._open_about)
         
@@ -140,7 +232,7 @@ class TrayWave(QSystemTrayIcon):
         self.menu.addMenu(category_menu)
     
     def _rebuild_menu(self):
-        """Rebuild the context menu (e.g., after station change)"""
+        """Rebuild the context menu"""
         self._build_menu()
     
     def _open_settings(self):
@@ -159,16 +251,11 @@ class TrayWave(QSystemTrayIcon):
         """Handle metadata (song) changes"""
         self.now_playing_artist = artist
         self.now_playing_title = title
-        
-        # Update tooltip
         self._update_tooltip()
-        
-        # Rebuild menu to show new song
         self._rebuild_menu()
     
     def _set_sleep_timer(self, minutes: int):
         """Set sleep timer"""
-        # TODO: Implement sleep timer
         self.showMessage(
             "Sleep Timer",
             f"Sleep timer set for {minutes} minutes (not implemented yet)",
@@ -181,61 +268,8 @@ class TrayWave(QSystemTrayIcon):
         is_muted = self.engine.toggle_mute()
         self.mute_action.setText("Unmute" if is_muted else "Mute")
 
-    def _update_icon(self):
-        """Update tray icon based on state"""
-        if self.engine.is_muted():
-            icon_name = "traywave-muted.png"
-            fallback = "audio-volume-muted"
-        elif self.engine.is_playing():
-            icon_name = "traywave-playing.png"
-            fallback = "audio-radio"
-        else:
-            icon_name = "traywave-stopped.png"
-            fallback = "audio-card"
-        
-        icon_loaded = False
-        
-        try:
-            # Try to load from installed package resources (Python package)
-            icon_path = str(files('traywave.resources.icons').joinpath(icon_name))
-            icon = QIcon(icon_path)
-            
-            if not icon.isNull():
-                self.setIcon(icon)
-                icon_loaded = True
-        except Exception as e:
-            # Package resources not available, try local development path
-            pass
-        
-        # Fallback: Try local resources (for development)
-        if not icon_loaded:
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            project_root = os.path.join(script_dir, "..", "..")
-            
-            # Try PNG
-            png_path = os.path.join(project_root, "resources", "icons", icon_name)
-            if os.path.exists(png_path):
-                icon = QIcon(png_path)
-                if not icon.isNull():
-                    self.setIcon(icon)
-                    icon_loaded = True
-            
-            # Try SVG (remove .png extension and add .svg)
-            if not icon_loaded:
-                svg_name = icon_name.replace('.png', '.svg')
-                svg_path = os.path.join(project_root, "resources", "icons", svg_name)
-                if os.path.exists(svg_path):
-                    icon = QIcon(svg_path)
-                    if not icon.isNull() and len(icon.availableSizes()) > 0:
-                        self.setIcon(icon)
-                        icon_loaded = True
-        
-        # Final fallback to theme icon
-        if not icon_loaded:
-            self.setIcon(QIcon.fromTheme(fallback, QIcon.fromTheme("audio-radio")))
-    
     def _update_tooltip(self):
-        """Update tray tooltip - EXTENDED VERSION"""
+        """Update tray tooltip"""
         if self.engine.current_station:
             if self.now_playing_title:
                 if self.now_playing_artist:
@@ -259,9 +293,7 @@ class TrayWave(QSystemTrayIcon):
     def eventFilter(self, obj, event):
         """Global event filter for scroll events"""
         if event.type() == event.Type.Wheel:
-            # Handle scroll in tray area (when popup is not visible)
             if self.is_mouse_in_tray and not self.popup.isVisible():
-                # Debounce: max 100ms between scroll events
                 current_time = QTimer.currentTime().msec()
                 if current_time - self.last_scroll_time > 100:
                     self.last_scroll_time = current_time
@@ -281,9 +313,6 @@ class TrayWave(QSystemTrayIcon):
     def on_tray_activated(self, reason):
         """Handle tray icon activation"""
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
-            # Left click - show volume popup
             self.popup.show_at_cursor()
-            
         elif reason == QSystemTrayIcon.ActivationReason.MiddleClick:
-            # Middle click - toggle mute
             self.engine.toggle_mute()
