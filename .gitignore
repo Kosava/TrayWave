@@ -1,33 +1,48 @@
+# =========================
 # Python
+# =========================
 __pycache__/
 *.py[cod]
 
+# =========================
 # Virtual environments
+# =========================
 venv/
 .venv/
 
+# =========================
 # Qt / PyQt
+# =========================
 *.qmlc
 *.jsc
 *.rcc
 
+# =========================
 # Build / distribution
+# =========================
 build/
 dist/
 *.egg-info/
 
+# =========================
 # Logs
+# =========================
 *.log
 
+# =========================
 # OS files
+# =========================
 .DS_Store
 Thumbs.db
 
-# IDEs
+# =========================
+# IDEs / Editors
+# =========================
 .vscode/
 .idea/
 
-# User config
+# =========================
+# App-specific / local files
+# =========================
 config/stations.json
-__pycache__/
-*.pyc
+traywave_pystray.py
