@@ -54,23 +54,30 @@ TrayWave works on **Linux desktop environments with system tray support**, inclu
 
 ```
 TrayWave/
-├── main.py
-├── config/
-│   └── stations.json
-├── resources/
-│   └── icons/
-├── traywave/
-│   ├── core/
-│   │   ├── engine.py
-│   │   └── stations.py
-│   ├── data/
-│   │   └── stations.py
-│   ├── ui/
-│   │   ├── tray.py
-│   │   ├── popups.py
-│   │   └── dialogs.py
-│   └── utils/
-│       └── geometry.py
+├── config
+│   ├── stations.json
+│   └── traywave_stations.json
+├── MANIFEST.in
+├── packaging
+│   └── traywave.desktop
+├── pyproject.toml
+├── README.md
+├── requirements.txt
+├── resources
+│   └── icons
+├── screenshots
+│   ├── tray-menu.jpg
+│   └── volume-popup.jpg
+├── traywave
+│   ├── app.py
+│   ├── core
+│   ├── data
+│   ├── __init__.py
+│   ├── __pycache__
+│   ├── resources
+│   ├── ui
+│   └── utils
+└── traywave_pystray.py
 ```
 
 ---

@@ -313,6 +313,8 @@ class TrayWave(QSystemTrayIcon):
     def on_tray_activated(self, reason):
         """Handle tray icon activation"""
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
+            # Levi klik - prikaži volume popup
             self.popup.show_at_cursor()
         elif reason == QSystemTrayIcon.ActivationReason.MiddleClick:
+            # Srednji klik - toggle mute
             self.engine.toggle_mute()
