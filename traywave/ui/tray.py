@@ -2,6 +2,7 @@
 Main tray icon and application
 """
 import os
+from importlib.resources import files
 from PyQt6.QtWidgets import QSystemTrayIcon, QMenu, QApplication
 from PyQt6.QtGui import QIcon, QCursor
 from PyQt6.QtCore import Qt, QTimer
@@ -182,39 +183,54 @@ class TrayWave(QSystemTrayIcon):
 
     def _update_icon(self):
         """Update tray icon based on state"""
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.join(script_dir, "..", "..")
-        
         if self.engine.is_muted():
-            base_name = "traywave-muted"
+            icon_name = "traywave-muted.png"
             fallback = "audio-volume-muted"
         elif self.engine.is_playing():
-            base_name = "traywave-playing"
+            icon_name = "traywave-playing.png"
             fallback = "audio-radio"
         else:
-            base_name = "traywave-stopped"
+            icon_name = "traywave-stopped.png"
             fallback = "audio-card"
         
         icon_loaded = False
         
-        # Try SVG in resources/icons
-        svg_path = os.path.join(project_root, "resources", "icons", f"{base_name}.svg")
-        if os.path.exists(svg_path):
-            icon = QIcon(svg_path)
-            if not icon.isNull() and len(icon.availableSizes()) > 0:
+        try:
+            # Try to load from installed package resources (Python package)
+            icon_path = str(files('traywave.resources.icons').joinpath(icon_name))
+            icon = QIcon(icon_path)
+            
+            if not icon.isNull():
                 self.setIcon(icon)
                 icon_loaded = True
+        except Exception as e:
+            # Package resources not available, try local development path
+            pass
         
-        # Try PNG if SVG failed
+        # Fallback: Try local resources (for development)
         if not icon_loaded:
-            png_path = os.path.join(project_root, "resources", "icons", f"{base_name}.png")
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.join(script_dir, "..", "..")
+            
+            # Try PNG
+            png_path = os.path.join(project_root, "resources", "icons", icon_name)
             if os.path.exists(png_path):
                 icon = QIcon(png_path)
                 if not icon.isNull():
                     self.setIcon(icon)
                     icon_loaded = True
+            
+            # Try SVG (remove .png extension and add .svg)
+            if not icon_loaded:
+                svg_name = icon_name.replace('.png', '.svg')
+                svg_path = os.path.join(project_root, "resources", "icons", svg_name)
+                if os.path.exists(svg_path):
+                    icon = QIcon(svg_path)
+                    if not icon.isNull() and len(icon.availableSizes()) > 0:
+                        self.setIcon(icon)
+                        icon_loaded = True
         
-        # Fallback to theme icon
+        # Final fallback to theme icon
         if not icon_loaded:
             self.setIcon(QIcon.fromTheme(fallback, QIcon.fromTheme("audio-radio")))
     
