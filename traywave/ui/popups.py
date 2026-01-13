@@ -1,14 +1,15 @@
 """
+VARIJANTA 1: STATIČNA PLAVA BOJA
 Popup widgets (volume popup, etc.)
 """
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QSlider, QLabel
 from PyQt6.QtCore import Qt, QTimer, QPoint
 from PyQt6.QtGui import QCursor
 from PyQt6.QtWidgets import QApplication
-from ..core.engine import AudioEngine
+from traywave.core.engine import AudioEngine
 
 class VolumePopup(QWidget):
-    """Popup volume control widget"""
+    """Popup volume control widget - Static Blue Color"""
     
     def __init__(self, engine: AudioEngine):
         super().__init__()
@@ -25,27 +26,36 @@ class VolumePopup(QWidget):
         )
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         
-        # Kompaktnija veličina
         self.setFixedSize(50, 180)
         self.setStyleSheet("""
             QWidget {
                 background-color: palette(window);
-                border: 2px solid palette(mid);
+                border: 1px solid palette(mid);
                 border-radius: 4px;
             }
             QSlider::groove:vertical {
-                width: 4px;
-                background: palette(dark);
-                border-radius: 2px;
+                width: 6px;
+                background: #9E9E9E;
+                border-radius: 3px;
+            }
+            QSlider::sub-page:vertical {
+                background: #9E9E9E;
+                border-radius: 3px;
+            }
+            QSlider::add-page:vertical {
+                background: #2196F3;
+                border-radius: 3px;
             }
             QSlider::handle:vertical {
-                height: 14px;
-                background: palette(highlight);
-                border-radius: 7px;
-                margin: 0 -5px;
+                height: 20px;
+                width: 20px;
+                background: #1976D2;
+                border: 2px solid white;
+                border-radius: 10px;
+                margin: 0 -7px;
             }
             QLabel {
-                font-size: 14pt;
+                font-size: 16pt;
                 font-weight: bold;
                 color: palette(text);
             }
@@ -55,7 +65,6 @@ class VolumePopup(QWidget):
         layout.setContentsMargins(7, 7, 7, 7)
         layout.setSpacing(6)
         
-        # Minimalistička labela
         self.label = QLabel("50")
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.label.setFixedHeight(30)
@@ -69,7 +78,6 @@ class VolumePopup(QWidget):
         
         layout.addWidget(self.slider, 0, Qt.AlignmentFlag.AlignHCenter)
         
-        # Connect engine volume changes to slider
         self.engine.on_volume_changed(self.update_slider)
         
     def setup_timer(self):
@@ -77,7 +85,7 @@ class VolumePopup(QWidget):
         self.hide_timer = QTimer()
         self.hide_timer.setSingleShot(True)
         self.hide_timer.timeout.connect(self.hide)
-        self.hide_timer.setInterval(3000)  # 3 seconds
+        self.hide_timer.setInterval(3000)
 
     def _on_slider_changed(self, value: int):
         """Handle slider value change"""
@@ -126,24 +134,18 @@ class VolumePopup(QWidget):
         if screen:
             geo = screen.availableGeometry()
             
-            # Centriraj horizontalno u odnosu na kursor
             x = cursor_pos.x() - self.width() // 2
             
-            # Proveri da li je kursor u donjem delu ekrana (tray area)
             if cursor_pos.y() > geo.bottom() - 100:
-                # Kursor je blizu panela - prikaži popup iznad
                 y = cursor_pos.y() - self.height() - 10
             else:
-                # Kursor je negde drugde - prikaži popup ispod
                 y = cursor_pos.y() + 10
             
-            # Drži popup unutar ekrana
             x = max(geo.left() + 5, min(x, geo.right() - self.width() - 5))
             y = max(geo.top() + 5, min(y, geo.bottom() - self.height() - 5))
             
             self.move(x, y)
         else:
-            # Fallback: jednostavno pozicioniranje
             self.move(cursor_pos.x() - self.width() // 2, cursor_pos.y() - self.height() - 10)
         
         self.show()

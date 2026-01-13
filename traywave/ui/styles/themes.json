@@ -1,0 +1,532 @@
+{
+  "teal": {
+    "name": "🌊 Teal",
+    "menu": {
+      "background": "rgba(255, 255, 255, 0.98)",
+      "border_radius": "14px",
+      "padding": "10px",
+      "border": "1px solid rgba(6, 182, 212, 0.2)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "8px",
+      "color": "#0f172a",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(6, 182, 212, 0.1)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(6, 182, 212, 0.3)",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "#06b6d4",
+      "padding": "14px 16px",
+      "text_color": "white"
+    }
+  },
+  "macos": {
+    "name": "🍎 macOS",
+    "menu": {
+      "background": "rgba(255, 255, 255, 0.95)",
+      "border_radius": "12px",
+      "padding": "8px",
+      "border": "1px solid rgba(0, 0, 0, 0.1)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "6px",
+      "color": "#1d1d1f",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(0, 0, 0, 0.05)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(0, 0, 0, 0.1)",
+      "margin": "8px 0px"
+    },
+    "header": {
+      "background": "rgba(0, 0, 0, 0.03)",
+      "padding": "14px 16px",
+      "text_color": "#1d1d1f",
+      "border_bottom": "1px solid rgba(0, 0, 0, 0.1)"
+    }
+  },
+  "win11": {
+    "name": "🪟 Windows 11",
+    "menu": {
+      "background": "rgba(243, 243, 243, 0.95)",
+      "border_radius": "8px",
+      "padding": "6px",
+      "border": "1px solid rgba(0, 0, 0, 0.08)"
+    },
+    "item": {
+      "padding": "10px 14px",
+      "border_radius": "6px",
+      "color": "#323130",
+      "font_size": "13px",
+      "margin": "1px 0px",
+      "hover_background": "rgba(0, 0, 0, 0.04)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(0, 0, 0, 0.06)",
+      "margin": "6px 0px"
+    },
+    "header": {
+      "background": "rgba(0, 120, 212, 0.1)",
+      "padding": "14px 16px",
+      "text_color": "#323130",
+      "border_bottom": "1px solid rgba(0, 120, 212, 0.2)"
+    }
+  },
+  "material": {
+    "name": "🧱 Material",
+    "menu": {
+      "background": "white",
+      "border_radius": "4px",
+      "padding": "8px",
+      "border": "1px solid #e0e0e0"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "4px",
+      "color": "rgba(0, 0, 0, 0.87)",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(0, 0, 0, 0.04)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#e0e0e0",
+      "margin": "8px 0px"
+    },
+    "header": {
+      "background": "#6200ee",
+      "padding": "14px 16px",
+      "text_color": "white"
+    }
+  },
+  "minimal": {
+    "name": "⚫ Minimal",
+    "menu": {
+      "background": "#1a1a1a",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid rgba(255, 255, 255, 0.1)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "6px",
+      "color": "rgba(255, 255, 255, 0.9)",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(255, 255, 255, 0.1)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(255, 255, 255, 0.2)",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "rgba(255, 255, 255, 0.05)",
+      "padding": "14px 16px",
+      "text_color": "rgba(255, 255, 255, 0.9)",
+      "border_bottom": "1px solid rgba(255, 255, 255, 0.1)"
+    }
+  },
+  "rosegold": {
+    "name": "🌹 Rose Gold",
+    "menu": {
+      "background": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #fdfcfb, stop:1 #fef5f1)",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid rgba(240, 147, 251, 0.3)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "8px",
+      "color": "#4a1942",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(240, 147, 251, 0.1)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(240, 147, 251, 0.4)",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "rgba(240, 147, 251, 0.2)",
+      "padding": "14px 16px",
+      "text_color": "#4a1942",
+      "border_bottom": "1px solid rgba(240, 147, 251, 0.3)"
+    }
+  },
+  "ocean": {
+    "name": "🌊 Ocean Blue",
+    "menu": {
+      "background": "rgba(227, 242, 253, 0.95)",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid rgba(33, 150, 243, 0.2)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "8px",
+      "color": "#0d47a1",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(33, 150, 243, 0.1)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(33, 150, 243, 0.3)",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "rgba(33, 150, 243, 0.2)",
+      "padding": "14px 16px",
+      "text_color": "#0d47a1",
+      "border_bottom": "1px solid rgba(33, 150, 243, 0.3)"
+    }
+  },
+  "forest": {
+    "name": "🌲 Forest Green",
+    "menu": {
+      "background": "rgba(245, 251, 242, 0.95)",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid rgba(76, 175, 80, 0.2)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "8px",
+      "color": "#1b5e20",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(76, 175, 80, 0.1)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(76, 175, 80, 0.3)",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "rgba(76, 175, 80, 0.2)",
+      "padding": "14px 16px",
+      "text_color": "#1b5e20",
+      "border_bottom": "1px solid rgba(76, 175, 80, 0.3)"
+    }
+  },
+  "sunset": {
+    "name": "🌅 Sunset Orange",
+    "menu": {
+      "background": "qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #fff8e1, stop:1 #ffecb3)",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid rgba(255, 152, 0, 0.2)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "8px",
+      "color": "#e65100",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(255, 152, 0, 0.1)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(255, 152, 0, 0.3)",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "rgba(255, 152, 0, 0.2)",
+      "padding": "14px 16px",
+      "text_color": "#e65100",
+      "border_bottom": "1px solid rgba(255, 152, 0, 0.3)"
+    }
+  },
+  "lavender": {
+    "name": "💜 Lavender Dream",
+    "menu": {
+      "background": "rgba(250, 245, 255, 0.95)",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid rgba(186, 104, 200, 0.2)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "8px",
+      "color": "#4a148c",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(186, 104, 200, 0.1)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(186, 104, 200, 0.3)",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "rgba(186, 104, 200, 0.2)",
+      "padding": "14px 16px",
+      "text_color": "#4a148c",
+      "border_bottom": "1px solid rgba(186, 104, 200, 0.3)"
+    }
+  },
+  "midnight": {
+    "name": "🌙 Midnight Blue",
+    "menu": {
+      "background": "#0d1b2a",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid rgba(66, 135, 245, 0.3)"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "8px",
+      "color": "#e0e1dd",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(66, 135, 245, 0.1)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "rgba(66, 135, 245, 0.4)",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "rgba(66, 135, 245, 0.2)",
+      "padding": "14px 16px",
+      "text_color": "#e0e1dd",
+      "border_bottom": "1px solid rgba(66, 135, 245, 0.3)"
+    }
+  },
+  "nord": {
+    "name": "❄️ Nord",
+    "menu": {
+      "background": "#2e3440",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid #3b4252"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "6px",
+      "color": "#d8dee9",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "#3b4252"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#4c566a",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "#88c0d0",
+      "padding": "14px 16px",
+      "text_color": "#2e3440",
+      "border_bottom": "2px solid #81a1c1"
+    }
+  },
+  "solarized": {
+    "name": "☀️ Solarized",
+    "menu": {
+      "background": "#002b36",
+      "border_radius": "10px",
+      "padding": "10px",
+      "border": "1px solid #073642"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "4px",
+      "color": "#839496",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "#073642"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#586e75",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "#b58900",
+      "padding": "14px 16px",
+      "text_color": "#002b36",
+      "border_radius": "10px 10px 0 0"
+    }
+  },
+  "cyberpunk": {
+    "name": "🔮 Cyberpunk",
+    "menu": {
+      "background": "#0a0a0f",
+      "border_radius": "8px",
+      "padding": "10px",
+      "border": "2px solid #ff00ff"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "4px",
+      "color": "#00ffff",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "rgba(255, 0, 255, 0.2)"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#ff00ff",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ff00ff, stop:1 #00ffff)",
+      "padding": "14px 16px",
+      "text_color": "#0a0a0f",
+      "font_weight": "bold"
+    }
+  },
+  "dracula": {
+    "name": "🧛 Dracula",
+    "menu": {
+      "background": "#282a36",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid #44475a"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "6px",
+      "color": "#f8f8f2",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "#44475a"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#6272a4",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "#bd93f9",
+      "padding": "14px 16px",
+      "text_color": "#282a36",
+      "border_bottom": "2px solid #ff79c6"
+    }
+  },
+  "monokai": {
+    "name": "🎨 Monokai Pro",
+    "menu": {
+      "background": "#272822",
+      "border_radius": "10px",
+      "padding": "10px",
+      "border": "1px solid #3e3d32"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "5px",
+      "color": "#f8f8f2",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "#3e3d32"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#75715e",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "#f92672",
+      "padding": "14px 16px",
+      "text_color": "#272822",
+      "border_radius": "10px 10px 0 0"
+    }
+  },
+  "gruvbox": {
+    "name": "📚 Gruvbox",
+    "menu": {
+      "background": "#282828",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid #3c3836"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "6px",
+      "color": "#ebdbb2",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "#3c3836"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#665c54",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "#fe8019",
+      "padding": "14px 16px",
+      "text_color": "#282828",
+      "border_bottom": "2px solid #b8bb26"
+    }
+  },
+  "catppuccin": {
+    "name": "🐱 Catppuccin Mocha",
+    "menu": {
+      "background": "#1e1e2e",
+      "border_radius": "14px",
+      "padding": "10px",
+      "border": "1px solid #313244"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "8px",
+      "color": "#cdd6f4",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "#313244"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#45475a",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "#cba6f7",
+      "padding": "14px 16px",
+      "text_color": "#1e1e2e",
+      "border_bottom": "2px solid #f5c2e7"
+    }
+  },
+  "tokyonight": {
+    "name": "🌙 Tokyo Night",
+    "menu": {
+      "background": "#1a1b26",
+      "border_radius": "12px",
+      "padding": "10px",
+      "border": "1px solid #24283b"
+    },
+    "item": {
+      "padding": "10px 16px",
+      "border_radius": "6px",
+      "color": "#a9b1d6",
+      "font_size": "13px",
+      "margin": "2px 0px",
+      "hover_background": "#24283b"
+    },
+    "separator": {
+      "height": "1px",
+      "background": "#414868",
+      "margin": "10px 0px"
+    },
+    "header": {
+      "background": "#7aa2f7",
+      "padding": "14px 16px",
+      "text_color": "#1a1b26",
+      "border_bottom": "2px solid #bb9af7"
+    }
+  }
+}

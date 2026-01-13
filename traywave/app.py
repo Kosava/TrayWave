@@ -1,6 +1,7 @@
+# app.py - PROMENJEN IMPORT
 import sys
 from PyQt6.QtWidgets import QApplication
-from traywave.ui.tray import TrayWave
+from ui.tray import TrayWave
 
 
 def main():

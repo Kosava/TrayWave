@@ -30,7 +30,9 @@ class ConfigManager:
             "show_song_info": True,
             "volume": 50,
             "muted": False,
-            "last_station": None
+            "last_station": None,
+            "sleep_minutes": 0,  # Dodato za sleep timer
+            "sleep_quit_on_expire": False  # Dodato za sleep timer
         }
         self.config = self._load_config()
     
@@ -78,6 +80,19 @@ class ConfigManager:
     def set_show_song_info(self, value: bool):
         """Set whether to show song info"""
         self.config["show_song_info"] = value
+        self.save_config()
+    
+    def get_sleep_timer(self):
+        """Get sleep timer settings"""
+        return {
+            "minutes": self.config.get("sleep_minutes", 0),
+            "quit_on_expire": self.config.get("sleep_quit_on_expire", False)
+        }
+    
+    def set_sleep_timer(self, minutes: int, quit_on_expire: bool):
+        """Set sleep timer settings"""
+        self.config["sleep_minutes"] = minutes
+        self.config["sleep_quit_on_expire"] = quit_on_expire
         self.save_config()
 
 
@@ -215,6 +230,7 @@ class AudioEngine(QObject):
     """Handles audio playback and volume control"""
     
     metadata_changed = pyqtSignal(str, str)
+    sleep_timer_changed = pyqtSignal(bool, int)  # is_active, minutes_left
     
     def __init__(self):
         super().__init__()
@@ -238,6 +254,11 @@ class AudioEngine(QObject):
         self._station_changed_callbacks: List[Callable] = []
         self._metadata_callbacks: List[Callable] = []
         
+        # Sleep timer
+        self.sleep_timer = None
+        self.sleep_minutes = 0
+        self.sleep_quit_on_expire = False
+        
         self.current_station = None
         self.current_bitrate = "128 kbps"
         self.current_song = None
@@ -258,7 +279,95 @@ class AudioEngine(QObject):
         self.metadata_timer = QTimer()
         self.metadata_timer.timeout.connect(self._check_metadata)
         self.metadata_timer.setInterval(5000)
+        
+        # Timer za update sleep timer display-a
+        self.sleep_update_timer = QTimer()
+        self.sleep_update_timer.timeout.connect(self._update_sleep_display)
+        self.sleep_update_timer.start(60000)  # Svaki minut
 
+    # === SLEEP TIMER METODE ===
+    
+    def set_sleep_timer(self, minutes: int, quit_on_expire: bool = False):
+        """Set sleep timer to stop playback after X minutes"""
+        # Cancel existing timer
+        self.cancel_sleep_timer()
+        
+        if minutes > 0:
+            self.sleep_minutes = minutes
+            self.sleep_quit_on_expire = quit_on_expire
+            
+            self.sleep_timer = QTimer()
+            self.sleep_timer.setSingleShot(True)
+            self.sleep_timer.timeout.connect(self._on_sleep_timeout)
+            self.sleep_timer.start(minutes * 60 * 1000)  # min → ms
+            
+            # Sačuvaj u config
+            self.config.set_sleep_timer(minutes, quit_on_expire)
+            
+            print(f"⏰ Sleep timer set: {minutes} min, quit: {quit_on_expire}")
+            self.sleep_timer_changed.emit(True, minutes)
+    
+    def cancel_sleep_timer(self):
+        """Cancel existing sleep timer"""
+        if self.sleep_timer:
+            self.sleep_timer.stop()
+            self.sleep_timer = None
+        
+        self.sleep_minutes = 0
+        self.sleep_quit_on_expire = False
+        
+        # Sačuvaj u config
+        self.config.set_sleep_timer(0, False)
+        
+        print("⏰ Sleep timer cancelled")
+        self.sleep_timer_changed.emit(False, 0)
+    
+    def get_sleep_timer_info(self):
+        """Get sleep timer info"""
+        if not self.sleep_timer:
+            return {
+                "active": False,
+                "minutes_set": 0,
+                "minutes_left": 0,
+                "quit_on_expire": False
+            }
+        
+        minutes_left = 0
+        if self.sleep_timer:
+            remaining_ms = self.sleep_timer.remainingTime()
+            minutes_left = max(0, remaining_ms // 60000)
+        
+        return {
+            "active": self.sleep_timer is not None,
+            "minutes_set": self.sleep_minutes,
+            "minutes_left": minutes_left,
+            "quit_on_expire": self.sleep_quit_on_expire
+        }
+    
+    def _on_sleep_timeout(self):
+        """Handle sleep timer expiration"""
+        print("⏰ Sleep timer expired")
+        
+        # Stop playback
+        self.stop()
+        
+        # Emit signal da je timer završen
+        self.sleep_timer_changed.emit(False, 0)
+        
+        # Reset timer
+        self.sleep_timer = None
+        self.sleep_minutes = 0
+    
+    def _update_sleep_display(self):
+        """Update sleep timer display (called every minute)"""
+        if self.sleep_timer:
+            remaining_ms = self.sleep_timer.remainingTime()
+            minutes_left = max(0, remaining_ms // 60000)
+            if minutes_left > 0:
+                self.sleep_timer_changed.emit(True, minutes_left)
+
+    # === OSTALE METODE ===
+    
     def play(self, url: str, station_name: str, bitrate: str = "128 kbps"):
         """Play a radio stream"""
         self.current_url = url
@@ -432,6 +541,8 @@ class AudioEngine(QObject):
         if self.is_playing() and not self.use_worker:
             self._on_qt_metadata_changed()
 
+    # === CALLBACK METODE ===
+    
     def on_volume_changed(self, callback: Callable):
         self._volume_changed_callbacks.append(callback)
 
@@ -444,6 +555,10 @@ class AudioEngine(QObject):
     def on_metadata_changed(self, callback: Callable):
         """Register callback for metadata changes"""
         self._metadata_callbacks.append(callback)
+    
+    def on_sleep_timer_changed(self, callback: Callable):
+        """Register callback for sleep timer changes"""
+        self.sleep_timer_changed.connect(callback)
 
     def _notify_volume_changed(self, value: int):
         for callback in self._volume_changed_callbacks:
