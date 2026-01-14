@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "traywave"
-version = "0.1.5"
+version = "0.1.6"
 description = "System tray radio player"
 authors = [{name = "Košava", email = "kosava@gmail.com"}]
 readme = "README.md"
@@ -23,9 +23,11 @@ traywave = "traywave.app:main"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["traywave*"]
+exclude = ["*.__pycache__", "*.tests"]
 
 [tool.setuptools.package-data]
 traywave = [
     "resources/icons/*.png",
-    "resources/icons/*.svg"
+    "resources/icons/*.svg",
+    "ui/styles/*.json"
 ]
