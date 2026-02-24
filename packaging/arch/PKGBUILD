@@ -1,0 +1,36 @@
+pkgname=traywave-git
+pkgver=0.2.0.r0.g0
+pkgrel=1
+pkgdesc="System tray radio player with themes and metadata support (Git version)"
+arch=('x86_64')
+url="https://github.com/Kosava/TrayWave"
+license=('MIT')
+depends=('python' 'python-pyqt6' 'python-requests')
+makedepends=('git' 'python-build' 'python-installer' 'python-wheel')
+provides=('traywave')
+conflicts=('traywave')
+source=("git+https://github.com/Kosava/TrayWave.git")
+sha256sums=('SKIP')
+
+pkgver() {
+    cd TrayWave
+    git describe --long --tags --abbrev=7 2>/dev/null \
+        | sed 's/^v//;s/-/.r/;s/-/./'
+}
+
+build() {
+    cd TrayWave
+    python -m build --wheel --no-isolation
+}
+
+package() {
+    cd TrayWave
+
+    python -m installer --destdir="$pkgdir" dist/*.whl
+
+    install -Dm644 packaging/arch/traywave.desktop \
+        "$pkgdir/usr/share/applications/traywave.desktop"
+
+    install -Dm644 resources/icons/traywave-playing.png \
+        "$pkgdir/usr/share/icons/hicolor/256x256/apps/traywave.png"
+}

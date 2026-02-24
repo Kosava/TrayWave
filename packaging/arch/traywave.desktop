@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=TrayWave
+Comment=System tray radio player with themes and metadata
+Exec=traywave
+Icon=traywave
+Terminal=false
+Categories=Audio;Player;Qt;
+StartupNotify=false
