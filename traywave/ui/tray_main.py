@@ -151,7 +151,10 @@ class TrayWave(QSystemTrayIcon):
         """Minimalni context meni za desni klik - prati aktivnu temu"""
         from PyQt6.QtWidgets import QMenu
         from PyQt6.QtCore import Qt
-        
+        from traywave.ui.icons import get_icon
+
+        ICON_SIZE = 18
+
         menu = QMenu()
         menu.setWindowFlags(
             Qt.WindowType.Popup |
@@ -159,12 +162,11 @@ class TrayWave(QSystemTrayIcon):
             Qt.WindowType.NoDropShadowWindowHint
         )
         menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        
-        # Primijeni CSS iz teme
+
         menu_d = theme.get('menu', {})
         item = theme.get('item', {})
         separator = theme.get('separator', {})
-        
+
         css = f"""
             QMenu {{
                 background-color: {menu_d.get('background', 'palette(base)')};
@@ -188,24 +190,27 @@ class TrayWave(QSystemTrayIcon):
                 margin: 4px 0px;
                 background: {separator.get('background', 'palette(mid)')};
             }}
-            QMenu::indicator, QMenu::icon {{
-                width: 0px; height: 0px; margin: 0px; padding: 0px;
-            }}
+            QMenu::icon {{ padding-left: 4px; }}
+            QMenu::indicator {{ width: 0px; height: 0px; margin: 0px; padding: 0px; }}
         """
         menu.setStyleSheet(css)
-        
-        stop_action = menu.addAction("⏹ Stop", self.engine.stop)
-        stop_action.setIconVisibleInMenu(False)
-        
-        mute_text = "🔇 Unmute" if self.engine.is_muted() else "🔈 Mute"
+
+        stop_action = menu.addAction("Stop", self.engine.stop)
+        stop_action.setIcon(get_icon("stop", ICON_SIZE))
+        stop_action.setIconVisibleInMenu(True)
+
+        mute_icon = "volume" if self.engine.is_muted() else "mute"
+        mute_text = "Unmute" if self.engine.is_muted() else "Mute"
         mute_action = menu.addAction(mute_text, self._toggle_mute)
-        mute_action.setIconVisibleInMenu(False)
-        
+        mute_action.setIcon(get_icon(mute_icon, ICON_SIZE))
+        mute_action.setIconVisibleInMenu(True)
+
         menu.addSeparator()
-        
-        quit_action = menu.addAction("⏻ Quit", self._quit)
-        quit_action.setIconVisibleInMenu(False)
-        
+
+        quit_action = menu.addAction("Quit", self._quit)
+        quit_action.setIcon(get_icon("power", ICON_SIZE))
+        quit_action.setIconVisibleInMenu(True)
+
         return menu
 
     def change_menu_style(self, style_name: str):

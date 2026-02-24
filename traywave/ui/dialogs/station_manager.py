@@ -12,6 +12,9 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon
 from .base_dialog import BaseDialog
+from ..icons import get_icon, get_pixmap
+
+_ICON_SIZE = 20  # px pro ikone u dijalozima
 
 
 class EditStationDialog(BaseDialog):
@@ -40,15 +43,15 @@ class EditStationDialog(BaseDialog):
         title_layout = QHBoxLayout()
         title_layout.setSpacing(12)
         
-        icon_label = QLabel("✏️")
-        icon_label.setFont(QFont("", 24))
+        icon_label = QLabel()
+        icon_label.setPixmap(get_pixmap("edit", 24))
         icon_label.setFixedSize(40, 40)
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         icon_label.setStyleSheet("""
             background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
                 stop:0 #06b6d4, stop:1 #0891b2);
             border-radius: 8px;
-            padding: 4px;
+            padding: 8px;
         """)
         title_layout.addWidget(icon_label)
         
@@ -86,7 +89,7 @@ class EditStationDialog(BaseDialog):
         name_layout = QVBoxLayout()
         name_layout.setSpacing(6)
         
-        name_label = QLabel("📻 Station Name")
+        name_label = QLabel("Station Name")
         name_label.setFont(QFont("", 10, QFont.Weight.DemiBold))
         name_label.setStyleSheet("color: #374151;")
         
@@ -103,7 +106,7 @@ class EditStationDialog(BaseDialog):
         url_layout = QVBoxLayout()
         url_layout.setSpacing(6)
         
-        url_label = QLabel("🌐 Stream URL")
+        url_label = QLabel("Stream URL")
         url_label.setFont(QFont("", 10, QFont.Weight.DemiBold))
         url_label.setStyleSheet("color: #374151;")
         
@@ -120,7 +123,7 @@ class EditStationDialog(BaseDialog):
         category_layout = QVBoxLayout()
         category_layout.setSpacing(6)
         
-        category_label = QLabel("📂 Category")
+        category_label = QLabel("Category")
         category_label.setFont(QFont("", 10, QFont.Weight.DemiBold))
         category_label.setStyleSheet("color: #374151;")
         
@@ -149,7 +152,8 @@ class EditStationDialog(BaseDialog):
         cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         cancel_btn.clicked.connect(self.reject)
         
-        save_btn = QPushButton("💾 Save")
+        save_btn = QPushButton("Save")
+        save_btn.setIcon(get_icon("save", _ICON_SIZE))
         save_btn.setFixedSize(100, 38)
         save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         save_btn.clicked.connect(self.validate_and_accept)
@@ -406,8 +410,9 @@ class StationManagerTab(QWidget):
         cat_header = QHBoxLayout()
         cat_header.setSpacing(8)
         
-        cat_icon = QLabel("📂")
-        cat_icon.setFont(QFont("", 16))
+        cat_icon = QLabel()
+        cat_icon.setPixmap(get_pixmap("folder", 20))
+        cat_icon.setFixedSize(24, 24)
         
         cat_label = QLabel("Categories")
         cat_label.setFont(QFont("", 12, QFont.Weight.Bold))
@@ -427,12 +432,14 @@ class StationManagerTab(QWidget):
         cat_buttons_layout = QHBoxLayout()
         cat_buttons_layout.setSpacing(6)
         
-        self.add_cat_btn = QPushButton("➕")
+        self.add_cat_btn = QPushButton()
+        self.add_cat_btn.setIcon(get_icon("add", _ICON_SIZE))
         self.add_cat_btn.setToolTip("Add Category")
         self.add_cat_btn.clicked.connect(self.add_category)
         self.add_cat_btn.setFixedSize(32, 32)
         
-        self.remove_cat_btn = QPushButton("🗑️")
+        self.remove_cat_btn = QPushButton()
+        self.remove_cat_btn.setIcon(get_icon("delete", _ICON_SIZE))
         self.remove_cat_btn.setToolTip("Remove Category")
         self.remove_cat_btn.clicked.connect(self.remove_category)
         self.remove_cat_btn.setFixedSize(32, 32)
@@ -452,8 +459,9 @@ class StationManagerTab(QWidget):
         sta_header = QHBoxLayout()
         sta_header.setSpacing(8)
         
-        sta_icon = QLabel("📻")
-        sta_icon.setFont(QFont("", 16))
+        sta_icon = QLabel()
+        sta_icon.setPixmap(get_pixmap("radio", 20))
+        sta_icon.setFixedSize(24, 24)
         
         sta_label = QLabel("Stations")
         sta_label.setFont(QFont("", 12, QFont.Weight.Bold))
@@ -474,18 +482,21 @@ class StationManagerTab(QWidget):
         station_buttons_layout = QHBoxLayout()
         station_buttons_layout.setSpacing(8)
         
-        self.add_station_btn = QPushButton("➕ Add")
+        self.add_station_btn = QPushButton("Add")
+        self.add_station_btn.setIcon(get_icon("add", _ICON_SIZE))
         self.add_station_btn.clicked.connect(self.add_station)
         self.add_station_btn.setFixedHeight(36)
         self.add_station_btn.setMinimumWidth(80)
         
-        self.edit_station_btn = QPushButton("✏️ Edit")
+        self.edit_station_btn = QPushButton("Edit")
+        self.edit_station_btn.setIcon(get_icon("edit", _ICON_SIZE))
         self.edit_station_btn.clicked.connect(self.edit_station)
         self.edit_station_btn.setFixedHeight(36)
         self.edit_station_btn.setMinimumWidth(80)
         self.edit_station_btn.setEnabled(False)
         
-        self.remove_station_btn = QPushButton("🗑️ Remove")
+        self.remove_station_btn = QPushButton("Remove")
+        self.remove_station_btn.setIcon(get_icon("delete", _ICON_SIZE))
         self.remove_station_btn.clicked.connect(self.remove_station)
         self.remove_station_btn.setFixedHeight(36)
         self.remove_station_btn.setMinimumWidth(80)
