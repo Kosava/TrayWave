@@ -1,82 +1,62 @@
 """
-Menu positioning utilities
+Menu positioning utilities - uses actual menu height for correct positioning
 """
 from PyQt6.QtCore import QPoint, QRect
 from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QCursor
+
+from .menu_builder import MENU_WIDTH
 
 
 class MenuPositioner:
-    """Handles menu positioning near tray icon"""
-    
-    ESTIMATED_MENU_HEIGHT = 800
-    ESTIMATED_MENU_WIDTH = 280
-    SCREEN_MARGIN = 10
+    """Handles menu positioning - smart positioning for tray icons"""
     
     @staticmethod
-    def calculate_position(tray_geometry: QRect) -> QPoint:
+    def calculate_position(tray_geometry: QRect, menu_height: int = 500) -> QPoint:
         """
-        Calculate optimal menu position near tray icon
+        Position menu intelligently based on tray icon position.
+        menu_height: stvarna visina menija (iz menu.sizeHint().height())
+        """
+        cursor_pos = QCursor.pos()
         
-        Args:
-            tray_geometry: QRect of tray icon geometry
-            
-        Returns:
-            QPoint for menu position
-        """
-        screen = QApplication.primaryScreen()
+        screen = QApplication.screenAt(cursor_pos)
+        if not screen:
+            screen = QApplication.primaryScreen()
+        
         screen_geo = screen.availableGeometry()
         
-        if tray_geometry.isValid() and tray_geometry.y() >= 0:
-            # Valid tray geometry - position near it
-            return MenuPositioner._position_near_tray(tray_geometry, screen_geo)
+        # Ograniči visinu menija na visinu ekrana
+        menu_height = min(menu_height, screen_geo.height() - 50)
+        
+        distance_from_right = screen_geo.right() - cursor_pos.x()
+        distance_from_bottom = screen_geo.bottom() - cursor_pos.y()
+        
+        if distance_from_bottom < 150:
+            # Tray je na dnu - meni ide TAČNO iznad taskbara (zalijepljen za dno)
+            y = screen_geo.bottom() - menu_height
+            
+            if distance_from_right < 400:
+                # Donji desni ugao - poravnat desno
+                x = screen_geo.right() - MENU_WIDTH
+            else:
+                # Dno, ali ne desni ugao - centriraj na kursor
+                x = cursor_pos.x() - MENU_WIDTH // 2
+        
+        elif distance_from_right < 200:
+            # Desna ivica, nije dno
+            x = screen_geo.right() - MENU_WIDTH
+            y = cursor_pos.y() - menu_height // 2
+        
         else:
-            # No valid tray geometry - use corner
-            return MenuPositioner._position_at_corner(screen_geo)
-    
-    @staticmethod
-    def _position_near_tray(tray_geo: QRect, screen_geo: QRect) -> QPoint:
-        """Position menu near tray icon"""
-        x = tray_geo.x()
-        y = tray_geo.y()
+            # Default: centriraj na kursor
+            x = cursor_pos.x() - MENU_WIDTH // 2
+            if cursor_pos.y() > screen_geo.height() / 2:
+                y = cursor_pos.y() - menu_height - 10
+            else:
+                y = cursor_pos.y() + 10
         
-        # Vertical positioning
-        # If tray is in bottom half of screen, show menu above it
-        if y > screen_geo.height() / 2:
-            y = tray_geo.top() - MenuPositioner.ESTIMATED_MENU_HEIGHT - 5
-        else:
-            y = tray_geo.bottom() + 5
-        
-        # Horizontal positioning
-        # If tray is in right half of screen, align menu to right edge
-        if x > screen_geo.width() / 2:
-            x = tray_geo.right() - MenuPositioner.ESTIMATED_MENU_WIDTH
-        
-        # Ensure menu stays on screen
-        return MenuPositioner._clamp_to_screen(x, y, screen_geo)
-    
-    @staticmethod
-    def _position_at_corner(screen_geo: QRect) -> QPoint:
-        """Position menu at bottom-right corner (typical tray location)"""
-        x = screen_geo.right() - MenuPositioner.ESTIMATED_MENU_WIDTH - MenuPositioner.SCREEN_MARGIN
-        y = screen_geo.bottom() - MenuPositioner.ESTIMATED_MENU_HEIGHT - MenuPositioner.SCREEN_MARGIN
-        
-        return MenuPositioner._clamp_to_screen(x, y, screen_geo)
-    
-    @staticmethod
-    def _clamp_to_screen(x: int, y: int, screen_geo: QRect) -> QPoint:
-        """Ensure position is within screen bounds"""
-        margin = MenuPositioner.SCREEN_MARGIN
-        
-        # Clamp X
-        if x < screen_geo.left():
-            x = screen_geo.left() + margin
-        if x + MenuPositioner.ESTIMATED_MENU_WIDTH > screen_geo.right():
-            x = screen_geo.right() - MenuPositioner.ESTIMATED_MENU_WIDTH - margin
-        
-        # Clamp Y
-        if y < screen_geo.top():
-            y = screen_geo.top() + margin
-        if y + MenuPositioner.ESTIMATED_MENU_HEIGHT > screen_geo.bottom():
-            y = screen_geo.bottom() - MenuPositioner.ESTIMATED_MENU_HEIGHT - margin
+        # Ograniči da ne izlazi van ekrana
+        x = max(screen_geo.left(), min(x, screen_geo.right() - MENU_WIDTH))
+        y = max(screen_geo.top(), min(y, screen_geo.bottom() - menu_height))
         
         return QPoint(x, y)

@@ -1,17 +1,22 @@
 """
 Main tray icon application
 """
+import logging
 import os
+import sys
 import json
 from PyQt6.QtWidgets import QSystemTrayIcon, QApplication
 from PyQt6.QtGui import QIcon, QCursor, QShortcut, QKeySequence
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QPoint, QRect
+
+logger = logging.getLogger(__name__)
 
 # Fixed imports - use absolute imports from traywave package
 from traywave.core.engine import AudioEngine
 from traywave.core.stations import StationsManager
 from traywave.ui.popups import VolumePopup
-from traywave.ui.dialogs import StyleSettingsDialog, AboutDialog
+# PROMENJENO: Sada import iz dialogs foldera
+from traywave.ui.dialogs import StyleSettingsDialog, AboutDialog  # OVO SE MENJA!
 from traywave.utils.geometry import is_mouse_in_tray_area
 from traywave.ui.menu_builder import MenuBuilder
 from traywave.ui.menu_positioning import MenuPositioner
@@ -54,9 +59,6 @@ class TrayWave(QSystemTrayIcon):
         self.sleep_minutes_left = 0
         self.sleep_quit_on_expire = False
         
-        # Icon tracking
-        self._icon_source_logged = False
-        
         # Style management
         self.config_file = os.path.expanduser("~/.traywave_style.json")
         self.current_style = self._load_style()
@@ -93,23 +95,35 @@ class TrayWave(QSystemTrayIcon):
                 with open(self.config_file, 'r') as f:
                     config = json.load(f)
                     return config.get('style', 'teal')
-        except:
-            pass
+        except (json.JSONDecodeError, OSError, KeyError) as e:
+            logger.warning(f"Ne mogu učitati style config: {e}")
         return 'teal'
     
     def _save_style(self, style_name: str):
         """Save style to config"""
         try:
-            with open(self.config_file, 'w') as f:
+            fd = os.open(self.config_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, 'w') as f:
                 json.dump({'style': style_name}, f)
-        except:
-            pass
+        except OSError as e:
+            logger.warning(f"Ne mogu sačuvati style config: {e}")
     
     # ============ Menu Management ============
     
     def _rebuild_menu(self):
         """Rebuild the menu completely"""
-        print(f"\n🔄 Rebuilding menu with style: {self.current_style}")
+        # Zaštita od re-entrant poziva (processEvents() može triggerovati signal ponovo)
+        if getattr(self, '_rebuilding_menu', False):
+            return
+        self._rebuilding_menu = True
+        try:
+            self._do_rebuild_menu()
+        finally:
+            self._rebuilding_menu = False
+    
+    def _do_rebuild_menu(self):
+        """Actual menu rebuild logic"""
+        logger.debug(f"Rebuilding menu with style: {self.current_style}")
         
         # Cleanup old menu
         if self.menu:
@@ -118,19 +132,82 @@ class TrayWave(QSystemTrayIcon):
                 self.menu.clear()
                 self.menu.deleteLater()
                 self.menu = None
-                QApplication.processEvents()
             except Exception as e:
-                print(f"⚠️  Error deleting menu: {e}")
+                logger.warning(f"Error deleting menu: {e}")
         
         # Build new menu
         self.menu = self.menu_builder.build_menu(self.current_style)
         
-        # Connect menu signals
-        self.menu.aboutToShow.connect(lambda: print("📋 Menu showing..."))
-        self.menu.aboutToHide.connect(lambda: print("📋 Menu hiding..."))
+        # Primijeni temu na volume popup
+        theme = self.menu_builder.style_manager.themes.get(self.current_style, {})
+        self.popup.apply_theme(theme)
         
-        print(f"✅ Menu rebuilt")
+        # Postavi minimalni context meni za desni klik (Stop, Mute, Quit)
+        self.setContextMenu(self._build_context_menu(theme))
+        
+        logger.debug("Menu rebuilt")
     
+    def _build_context_menu(self, theme: dict):
+        """Minimalni context meni za desni klik - prati aktivnu temu"""
+        from PyQt6.QtWidgets import QMenu
+        from PyQt6.QtCore import Qt
+        
+        menu = QMenu()
+        menu.setWindowFlags(
+            Qt.WindowType.Popup |
+            Qt.WindowType.FramelessWindowHint |
+            Qt.WindowType.NoDropShadowWindowHint
+        )
+        menu.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # Primijeni CSS iz teme
+        menu_d = theme.get('menu', {})
+        item = theme.get('item', {})
+        separator = theme.get('separator', {})
+        
+        css = f"""
+            QMenu {{
+                background-color: {menu_d.get('background', 'palette(base)')};
+                margin: 0px;
+                padding: 4px;
+                border: {menu_d.get('border', '1px solid palette(mid)')};
+                border-radius: {menu_d.get('border_radius', '8px')};
+            }}
+            QMenu::item {{
+                padding: {item.get('padding', '8px 16px')};
+                margin: 0px;
+                border-radius: {item.get('border_radius', '4px')};
+                color: {item.get('color', 'palette(text)')};
+                font-size: {item.get('font_size', '13px')};
+            }}
+            QMenu::item:selected {{
+                background: {item.get('hover_background', 'palette(highlight)')};
+            }}
+            QMenu::separator {{
+                height: 1px;
+                margin: 4px 0px;
+                background: {separator.get('background', 'palette(mid)')};
+            }}
+            QMenu::indicator, QMenu::icon {{
+                width: 0px; height: 0px; margin: 0px; padding: 0px;
+            }}
+        """
+        menu.setStyleSheet(css)
+        
+        stop_action = menu.addAction("⏹ Stop", self.engine.stop)
+        stop_action.setIconVisibleInMenu(False)
+        
+        mute_text = "🔇 Unmute" if self.engine.is_muted() else "🔈 Mute"
+        mute_action = menu.addAction(mute_text, self._toggle_mute)
+        mute_action.setIconVisibleInMenu(False)
+        
+        menu.addSeparator()
+        
+        quit_action = menu.addAction("⏻ Quit", self._quit)
+        quit_action.setIconVisibleInMenu(False)
+        
+        return menu
+
     def change_menu_style(self, style_name: str):
         """Change menu style"""
         if style_name == self.current_style:
@@ -140,7 +217,7 @@ class TrayWave(QSystemTrayIcon):
         self.current_style = style_name
         self._save_style(style_name)
         
-        print(f"\n🎨 CHANGING STYLE: '{old_style}' → '{style_name}'")
+        logger.debug(f"Changing style: '{old_style}' -> '{style_name}'")
         
         # Check if menu is visible
         menu_was_visible = self.menu and self.menu.isVisible()
@@ -164,33 +241,124 @@ class TrayWave(QSystemTrayIcon):
         if menu_was_visible:
             QTimer.singleShot(100, self._show_menu)
         
-        print(f"   ✅ Style change complete!")
+        logger.debug("Style change complete")
+    
+    def _get_tray_position(self):
+        """Get tray icon position - WORKAROUND za Linux gde geometry() ne radi"""
+        logger.debug("Getting tray position...")
+        
+        # Prvo probaj standardnu geometriju
+        tray_geo = self.geometry()
+        logger.debug(f"Standard geometry(): {tray_geo}")
+        
+        # Ako nije validna, koristi cursor poziciju kao workaround
+        if not tray_geo.isValid() or tray_geo.width() == 0 or tray_geo.height() == 0:
+            logger.debug("Invalid tray geometry, using cursor position")
+            cursor_pos = QCursor.pos()
+            
+            # Na Linux-u, tray je obično u donjem desnom uglu
+            screen = QApplication.primaryScreen()
+            screen_geo = screen.availableGeometry()
+            
+            # Kreiraj estimiranu tray geometriju
+            tray_width = 32  # Tipična širina tray ikone
+            tray_height = 32  # Tipična visina
+            
+            # Ako je cursor u donjem delu ekrana, koristi cursor
+            if cursor_pos.y() > screen_geo.height() * 0.7:
+                logger.debug("Using cursor position (in bottom area)")
+                x = cursor_pos.x() - tray_width // 2
+                y = screen_geo.bottom() - tray_height - 5
+            else:
+                # Inače, koristi donji desni ugao
+                logger.debug("Using bottom-right corner")
+                x = screen_geo.right() - tray_width - 5
+                y = screen_geo.bottom() - tray_height - 5
+            
+            tray_geo = QRect(x, y, tray_width, tray_height)
+        
+        logger.debug(f"Final tray position: {tray_geo}")
+        return tray_geo
     
     def _show_menu(self):
         """Show menu at appropriate position"""
         if not self.menu:
+            logger.warning("No menu to show!")
             return
         
-        position = MenuPositioner.calculate_position(self.geometry())
+        # Dobij poziciju tray ikone
+        tray_geo = self._get_tray_position()
         
-        print(f"\n📋 Showing menu at: {position}")
+        # Dobij stvarnu visinu menija
+        # adjustSize() forsira Qt da izračuna layout prije sizeHint()
+        self.menu.adjustSize()
+        menu_height = self.menu.sizeHint().height()
+        # Sanity check - pri prvom pozivu Qt može vratiti preveliku vrijednost
+        screen = QApplication.primaryScreen()
+        if screen:
+            max_h = screen.availableGeometry().height() - 100
+            if menu_height > max_h:
+                menu_height = max_h
+        logger.debug(f"Menu height: {menu_height}px")
+        
+        # Izračunaj poziciju menija koristeći stvarnu visinu
+        position = MenuPositioner.calculate_position(tray_geo, menu_height)
+        
+        logger.debug(f"Showing menu at: {position}")
+        
+        
+        # Prikaži meni
         self.menu.popup(position)
+        
+        # Fokusiraj meni
+        self.menu.setFocus()
     
     # ============ Icon Management ============
     
     def _find_icon_path(self, icon_name: str) -> str:
-        """Find icon file path"""
+        """Find icon file path - prioritizuj lokalne development resurse"""
         paths_to_check = []
         
-        # Package resources
+        # 1. Prvo proveri lokalne development resurse (najvažnije za development)
+        try:
+            # Dobij base direktorijum gde se nalazi ovaj fajl
+            current_file_dir = os.path.dirname(os.path.abspath(__file__))
+            
+            # Različite moguće lokacije u development okruženju
+            dev_paths = [
+                # Lokacija kada se pokreće iz traywave/ui/ foldera
+                os.path.join(current_file_dir, "..", "..", "resources", "icons", icon_name),
+                # Lokacija kada se pokreće iz root foldera projekta
+                os.path.join(os.getcwd(), "resources", "icons", icon_name),
+                # Lokacija kada se pokreće preko run.py iz root foldera
+                os.path.join(os.path.dirname(sys.argv[0]), "resources", "icons", icon_name),
+                # Apsolutna putanja za development (zameni /home/alen sa tvojom putanjom)
+                os.path.expanduser(f"~/traywave/resources/icons/{icon_name}"),
+            ]
+            
+            for dev_path in dev_paths:
+                dev_path = os.path.abspath(dev_path)
+                if os.path.exists(dev_path):
+                    paths_to_check.append(('DEVELOPMENT resources', dev_path))
+                    logger.debug(f"Found development path: {dev_path}")
+        except Exception as e:
+            logger.debug(f"Error checking development paths: {e}")
+        
+        # 2. Proveri user .local folder
+        user_local_path = os.path.expanduser(f"~/.local/share/traywave/icons/{icon_name}")
+        if os.path.exists(user_local_path):
+            paths_to_check.append(('User local', user_local_path))
+        
+        # 3. Package resources (za instaliranu verziju)
         try:
             from importlib.resources import files
-            icon_path = str(files('traywave.resources.icons').joinpath(icon_name))
-            paths_to_check.append(('Package resources', icon_path))
-        except Exception:
+            pkg_path = str(files('traywave.resources.icons').joinpath(icon_name))
+            paths_to_check.append(('Package resources', pkg_path))
+        except Exception as e:
+            # Ovo je ok za development
             pass
         
-        # System paths
+        # 4. Sistemske lokacije (samo kao fallback)
         system_paths = [
             (f"/usr/share/traywave/icons/{icon_name}", 'System traywave'),
             (f"/usr/share/icons/hicolor/128x128/apps/{icon_name}", 'Hicolor 128x128'),
@@ -198,20 +366,24 @@ class TrayWave(QSystemTrayIcon):
         ]
         paths_to_check.extend(system_paths)
         
-        # Development paths
-        try:
-            project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
-            paths_to_check.append(('Project root', os.path.join(project_root, 'resources', 'icons', icon_name)))
-        except Exception:
-            pass
-        
-        # Check paths
+        # Proveri sve putanje
         for source, path in paths_to_check:
             if os.path.exists(path):
-                if not self._icon_source_logged:
-                    print(f"✓ Loading icons from: {source}")
-                    self._icon_source_logged = True
+                # Proveri da li je PNG fajl validan
+                if path.lower().endswith('.png'):
+                    try:
+                        from PyQt6.QtGui import QPixmap
+                        pixmap = QPixmap(path)
+                        if pixmap.isNull():
+                            logger.debug(f"PNG file exists but is invalid/corrupted: {path}")
+                            continue
+                    except Exception:
+                        pass
+                logger.debug(f"Using icon from: {source} ({path})")
                 return path
+        
+        # Ako ništa nije pronađeno
+        logger.warning(f"Icon {icon_name!r} not found in any location")
         
         return None
     
@@ -233,10 +405,41 @@ class TrayWave(QSystemTrayIcon):
             icon = QIcon(icon_path)
             if not icon.isNull():
                 self.setIcon(icon)
+                logger.debug(f"Tray icon {icon_name!r} loaded")
                 return
+            else:
+                logger.warning(f"Icon {icon_name!r} at {icon_path} failed to load")
         
         # Fallback to theme icon
-        self.setIcon(QIcon.fromTheme(fallback, QIcon.fromTheme("audio-radio")))
+        fallback_icon = QIcon.fromTheme(fallback, QIcon.fromTheme("audio-radio"))
+        self.setIcon(fallback_icon)
+        logger.debug(f"Using fallback theme icon: {fallback}")
+        
+        # Ako koristimo fallback, probaj da kreiraš ikonicu
+        self._try_create_icons()
+    
+    def _try_create_icons(self):
+        """Try to create icons if they don't exist"""
+        logger.debug("Attempting to create missing icons...")
+        
+        # Proveri da li resources folder postoji
+        resources_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "resources", "icons")
+        os.makedirs(resources_dir, exist_ok=True)
+        
+        # Proveri koje ikonice nedostaju
+        required_icons = ["traywave-playing.png", "traywave-stopped.png", "traywave-muted.png"]
+        missing_icons = []
+        
+        for icon in required_icons:
+            icon_path = os.path.join(resources_dir, icon)
+            if not os.path.exists(icon_path):
+                missing_icons.append(icon)
+        
+        if missing_icons:
+            logger.warning(f"Missing icons: {missing_icons}")
+            logger.warning("Run: python create_icons.py in project root to generate icons")
+        else:
+            logger.debug("All icons exist in resources folder")
     
     # ============ Timers ============
     
@@ -267,7 +470,7 @@ class TrayWave(QSystemTrayIcon):
     
     def _on_sleep_timer_changed(self, is_active: bool, minutes_left: int):
         """Handle sleep timer changes from engine"""
-        print(f"⏰ Sleep timer changed: active={is_active}, minutes_left={minutes_left}")
+        logger.debug(f"Sleep timer changed: active={is_active}, minutes_left={minutes_left}")
         self.sleep_timer_active = is_active
         self.sleep_minutes_left = minutes_left
         self._update_tooltip()
@@ -278,9 +481,6 @@ class TrayWave(QSystemTrayIcon):
         """Handle tray icon activation"""
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             # Left click - show menu
-            self._show_menu()
-        elif reason == QSystemTrayIcon.ActivationReason.Context:
-            # Right click - show menu
             self._show_menu()
         elif reason == QSystemTrayIcon.ActivationReason.DoubleClick:
             # Double click - volume popup
@@ -293,7 +493,8 @@ class TrayWave(QSystemTrayIcon):
         """Global event filter for scroll events"""
         if event.type() == event.Type.Wheel:
             if self.is_mouse_in_tray and not self.popup.isVisible():
-                current_time = QTimer.currentTime().msec()
+                import time as _time
+                current_time = int(_time.monotonic() * 1000)
                 if current_time - self.last_scroll_time > 100:
                     self.last_scroll_time = current_time
                     
@@ -335,7 +536,7 @@ class TrayWave(QSystemTrayIcon):
     
     def _set_sleep_timer(self, minutes: int):
         """Set sleep timer from tray menu"""
-        print(f"⏰ Setting sleep timer: {minutes} minutes")
+        logger.debug(f"Setting sleep timer: {minutes} minutes")
         self.engine.set_sleep_timer(minutes, False)
         
         # Prikaži notifikaciju
@@ -348,7 +549,7 @@ class TrayWave(QSystemTrayIcon):
     
     def _cancel_sleep_timer(self):
         """Cancel active sleep timer"""
-        print("⏰ Cancelling sleep timer")
+        logger.debug("Cancelling sleep timer")
         self.engine.cancel_sleep_timer()
         
         # Prikaži notifikaciju

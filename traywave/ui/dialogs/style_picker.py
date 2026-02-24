@@ -1,17 +1,21 @@
 """
-Dialog windows (settings, style picker, about, etc.)
+Style picker dialog and preview widget.
 """
+
+import os
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
-    QListWidget, QPushButton, QMessageBox, QInputDialog,
-    QFrame, QTabWidget, QWidget, QScrollArea, QGroupBox, QCheckBox, QSpinBox
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QWidget,
+    QPushButton, QScrollArea, QFrame, QTabWidget
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
-from traywave.core.stations import StationsManager
+from PyQt6.QtGui import QFont, QPixmap, QIcon
+from .base_dialog import DialogWithIcon
+from .station_manager import StationManagerTab
+from .general_settings import GeneralSettingsTab
+
 
 class StylePreviewWidget(QWidget):
-    """Preview widget showing menu style"""
+    """Preview widget showing menu style."""
     
     def __init__(self, style_name, style_data, parent=None):
         super().__init__(parent)
@@ -27,13 +31,13 @@ class StylePreviewWidget(QWidget):
         layout.setContentsMargins(15, 15, 15, 15)
         layout.setSpacing(8)
         
-        # Title - konzistentan font i poravnanje
+        # Title
         title = QLabel(style_data.get('name', style_name))
         title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
         
-        # Preview container - fiksna veličina za sve
+        # Preview container
         preview = QWidget()
         preview.setFixedHeight(150)
         preview.setFixedWidth(250)
@@ -46,25 +50,20 @@ class StylePreviewWidget(QWidget):
         preview_layout.setContentsMargins(8, 8, 8, 8)
         preview_layout.setSpacing(3)
         
-        # Add sample items - SVI ISTI
-        # Koristi proper Unicode karakter za muzičku notu
+        # Add sample items
         sample_items = ["♫ Now playing", "EX-YU ▶", "Dance ▶", "Settings", "Quit"]
         for text in sample_items:
             item = QLabel(text)
-            # CSS će biti primenjen preko parent widget-a
             preview_layout.addWidget(item)
         
-        # Dodaj stretch da svi budu isti
         preview_layout.addStretch()
-        
         layout.addWidget(preview)
         
         # Apply initial border style
         self._update_style()
     
     def _create_mini_style(self):
-        """Create a simplified version of the style for preview"""
-        # KONZISTENTAN PREVIEW ZA SVE - samo border i boje se razlikuju
+        """Create a simplified version of the style for preview."""
         if 'teal' in self.style_name.lower():
             return """
                 QWidget {
@@ -254,7 +253,6 @@ class StylePreviewWidget(QWidget):
                     background-color: rgba(33, 150, 243, 0.1);
                 }
             """
-        # --- NOVE TEME ---
         elif 'nord' in self.style_name.lower():
             return """
                 QWidget {
@@ -391,7 +389,6 @@ class StylePreviewWidget(QWidget):
                     background-color: #24283b;
                 }
             """
-        
         # Default za sve ostale
         return """
             QWidget {
@@ -411,70 +408,64 @@ class StylePreviewWidget(QWidget):
         """
     
     def _update_style(self):
-        """Update widget style based on state"""
+        """Update widget style based on state."""
         if self.is_selected:
-            # SELEKTOVAN - jak efekat: border + jak glow + svetlija pozadina
-            border_color = "#06b6d4"
-            border_width = "4px"  # Još deblji border
-            bg_color = "#f0f9ff"  # Dosta svetlija plava pozadina
-            # Jači glow efekat sa više prozirnosti i većim rasponom
-            glow_effect = """
-                box-shadow: 
-                    0 0 0 3px rgba(6, 182, 212, 0.1),
-                    0 0 20px 5px rgba(6, 182, 212, 0.25),
-                    0 0 30px 8px rgba(6, 182, 212, 0.15);
-            """
+            # Deblja granica + plava pozadina simulira "glow" efekat
+            # (PyQt6 ne podržava box-shadow)
+            self.setStyleSheet("""
+                QWidget {
+                    border: 3px solid #06b6d4;
+                    border-radius: 14px;
+                    background-color: #e0f7fa;
+                    padding: 2px;
+                }
+            """)
         elif self.is_hovered:
-            # HOVER - umereni efekat
-            border_color = "#06b6d4"
-            border_width = "2px"
-            bg_color = "white"
-            glow_effect = ""
+            self.setStyleSheet("""
+                QWidget {
+                    border: 2px solid #06b6d4;
+                    border-radius: 14px;
+                    background-color: white;
+                    padding: 2px;
+                }
+            """)
         else:
-            # NORMAL - neutralni stil
-            border_color = "#e5e7eb"
-            border_width = "2px"
-            bg_color = "#f9fafb"  # Veoma blaga siva pozadina
-            glow_effect = ""
-        
-        # Postavi glavni stil
-        self.setStyleSheet(f"""
-            QWidget {{
-                border: {border_width} solid {border_color};
-                border-radius: 14px;
-                background-color: {bg_color};
-                {glow_effect}
-                padding: 2px;
-            }}
-        """)
+            self.setStyleSheet("""
+                QWidget {
+                    border: 2px solid #e5e7eb;
+                    border-radius: 14px;
+                    background-color: #f9fafb;
+                    padding: 2px;
+                }
+            """)
     
     def enterEvent(self, event):
-        """Handle mouse enter"""
+        """Handle mouse enter."""
         self.is_hovered = True
         if not self.is_selected:
             self._update_style()
         super().enterEvent(event)
     
     def leaveEvent(self, event):
-        """Handle mouse leave"""
+        """Handle mouse leave."""
         self.is_hovered = False
         if not self.is_selected:
             self._update_style()
         super().leaveEvent(event)
     
     def set_selected(self, selected):
-        """Highlight as selected"""
+        """Highlight as selected."""
         self.is_selected = selected
         self._update_style()
 
 
-class StyleSettingsDialog(QDialog):
-    """Combined Settings dialog with tabs for Stations and Appearance"""
+class StyleSettingsDialog(DialogWithIcon):
+    """Combined Settings dialog with tabs for Stations and Appearance."""
     
     # Signal koji se emituje kada se stanice promene
     stations_modified = pyqtSignal()
     
-    def __init__(self, stations_manager: StationsManager, tray_wave, parent=None):
+    def __init__(self, stations_manager, tray_wave, parent=None):
         super().__init__(parent)
         self.manager = stations_manager
         self.tray_wave = tray_wave
@@ -482,31 +473,50 @@ class StyleSettingsDialog(QDialog):
         self.style_widgets = {}
         
         self.setWindowTitle("TrayWave Settings")
-        self.setMinimumSize(900, 650)
+        self.setMinimumSize(1000, 700)
         
+        self._set_window_icon()
         self.init_ui()
     
     def init_ui(self):
-        """Initialize dialog UI with tabs"""
+        """Initialize dialog UI with tabs."""
+        from PyQt6.QtWidgets import QHBoxLayout
+        
         layout = QVBoxLayout(self)
         layout.setSpacing(20)
         
-        # Title
-        title = QLabel("⚙️ TrayWave Settings")
-        title.setFont(QFont("", 18, QFont.Weight.Bold))
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
+        # Header sa logom
+        header = self.create_header(
+            "⚙️ TrayWave Settings",
+            "Radio player for your system tray"
+        )
+        layout.addLayout(header)
         
-        # Tab widget
+        # Tab widget - importovani iz drugih modula
         tabs = QTabWidget()
-        tabs.addTab(self._create_stations_tab(), "📻 Stations")
+        tabs.addTab(StationManagerTab(self.manager, self), "📻 Stations")
         tabs.addTab(self._create_appearance_tab(), "🎨 Appearance")
-        tabs.addTab(self._create_general_tab(), "🔧 General")
+        tabs.addTab(GeneralSettingsTab(self.tray_wave), "🔧 General")
         layout.addWidget(tabs)
         
         # Buttons
         button_layout = QHBoxLayout()
         button_layout.addStretch()
+        
+        close_btn = QPushButton("Close")
+        close_btn.setFixedSize(120, 40)
+        close_btn.clicked.connect(self.accept)
+        close_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #e5e7eb;
+                color: #374151;
+                border-radius: 8px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #d1d5db;
+            }
+        """)
         
         apply_btn = QPushButton("Apply")
         apply_btn.setFont(QFont("", 10, QFont.Weight.Bold))
@@ -526,24 +536,8 @@ class StyleSettingsDialog(QDialog):
             }
         """)
         
-        close_btn = QPushButton("Close")
-        close_btn.setFixedSize(120, 40)
-        close_btn.clicked.connect(self.accept)  # Zatvori bez promena
-        close_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #e5e7eb;
-                color: #374151;
-                border-radius: 8px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #d1d5db;
-            }
-        """)
-        
         button_layout.addWidget(close_btn)
         button_layout.addWidget(apply_btn)
-        
         layout.addLayout(button_layout)
         
         # Set dialog style
@@ -568,94 +562,12 @@ class StyleSettingsDialog(QDialog):
                 color: #06b6d4;
                 font-weight: bold;
             }
-            QGroupBox {
-                border: 2px solid #e5e7eb;
-                border-radius: 12px;
-                margin-top: 12px;
-                padding-top: 15px;
-                background-color: white;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                subcontrol-position: top left;
-                padding: 5px 15px;
-                color: #1f2937;
-            }
-            QCheckBox {
-                font-size: 11px;
-                color: #374151;
-                spacing: 8px;
-            }
-            QCheckBox::indicator {
-                width: 20px;
-                height: 20px;
-                border-radius: 4px;
-                border: 2px solid #d1d5db;
-            }
-            QCheckBox::indicator:checked {
-                background-color: #06b6d4;
-                border-color: #06b6d4;
-            }
-            QSpinBox {
-                font-size: 11px;
-                padding: 4px;
-                border: 1px solid #d1d5db;
-                border-radius: 4px;
-                background-color: white;
-            }
-            QSpinBox:hover {
-                border-color: #9ca3af;
-            }
         """)
     
-    def _create_stations_tab(self):
-        """Create stations management tab"""
-        widget = QWidget()
-        layout = QHBoxLayout(widget)
-        
-        # Left side - categories
-        left_layout = QVBoxLayout()
-        left_layout.addWidget(QLabel("Categories:"))
-        
-        self.categories_list = QListWidget()
-        self.categories_list.currentItemChanged.connect(self.on_category_selected)
-        left_layout.addWidget(self.categories_list)
-        
-        cat_buttons = QHBoxLayout()
-        add_cat_btn = QPushButton("Add Category")
-        add_cat_btn.clicked.connect(self.add_category)
-        remove_cat_btn = QPushButton("Remove Category")
-        remove_cat_btn.clicked.connect(self.remove_category)
-        cat_buttons.addWidget(add_cat_btn)
-        cat_buttons.addWidget(remove_cat_btn)
-        left_layout.addLayout(cat_buttons)
-        
-        # Right side - stations
-        right_layout = QVBoxLayout()
-        right_layout.addWidget(QLabel("Stations:"))
-        
-        self.stations_list = QListWidget()
-        right_layout.addWidget(self.stations_list)
-        
-        station_buttons = QHBoxLayout()
-        add_station_btn = QPushButton("Add Station")
-        add_station_btn.clicked.connect(self.add_station)
-        remove_station_btn = QPushButton("Remove Station")
-        remove_station_btn.clicked.connect(self.remove_station)
-        station_buttons.addWidget(add_station_btn)
-        station_buttons.addWidget(remove_station_btn)
-        right_layout.addLayout(station_buttons)
-        
-        # Combine layouts
-        layout.addLayout(left_layout, 1)
-        layout.addLayout(right_layout, 2)
-        
-        self.load_categories()
-        
-        return widget
-    
     def _create_appearance_tab(self):
-        """Create appearance/style selection tab"""
+        """Create appearance/style selection tab."""
+        from PyQt6.QtWidgets import QWidget, QVBoxLayout, QScrollArea
+        
         widget = QWidget()
         layout = QVBoxLayout(widget)
         
@@ -671,7 +583,7 @@ class StyleSettingsDialog(QDialog):
         scroll_widget = QWidget()
         scroll_layout = QVBoxLayout(scroll_widget)
         
-        # FIXED: Import StyleManager to get themes
+        # Import StyleManager to get themes
         from traywave.ui.styles.style_manager import StyleManager
         style_manager = StyleManager()
         
@@ -702,11 +614,11 @@ class StyleSettingsDialog(QDialog):
             self.style_widgets[style_name] = preview
             row_layout.addWidget(preview)
         
-        # FIXED: Popuni poslednji red praznim widget-ima da bi sve bile poravnate
+        # Popuni poslednji red praznim widget-ima
         if row_layout and row_layout.count() < 3:
             for _ in range(3 - row_layout.count()):
                 spacer = QWidget()
-                spacer.setFixedSize(280, 200)  # iste dimenzije kao preview widget
+                spacer.setFixedSize(280, 200)
                 row_layout.addWidget(spacer)
         
         scroll_layout.addStretch()
@@ -716,82 +628,12 @@ class StyleSettingsDialog(QDialog):
         return widget
     
     def _handle_preview_click(self, style_name, event):
-        """Handle preview widget click"""
+        """Handle preview widget click."""
         print(f"🖱️ Preview clicked: {style_name}")
         self.select_style(style_name)
     
-    def _create_general_tab(self):
-        """Create general settings tab"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        
-        # General Settings group
-        general_group = QGroupBox("General Settings")
-        general_layout = QVBoxLayout(general_group)
-        
-        self.autostart_check = QCheckBox("Launch at system startup")
-        self.notifications_check = QCheckBox("Show notifications on track change")
-        self.minimize_check = QCheckBox("Minimize to tray on close")
-        
-        general_layout.addWidget(self.autostart_check)
-        general_layout.addWidget(self.notifications_check)
-        general_layout.addWidget(self.minimize_check)
-        
-        layout.addWidget(general_group)
-        
-        # Sleep Timer group
-        sleep_group = QGroupBox("Sleep Timer")
-        sleep_layout = QVBoxLayout(sleep_group)
-        
-        self.sleep_enable = QCheckBox("Enable sleep timer")
-        
-        # Minutes input
-        minutes_layout = QHBoxLayout()
-        minutes_layout.addWidget(QLabel("Stop playback after:"))
-        self.sleep_minutes_spin = QSpinBox()
-        self.sleep_minutes_spin.setRange(1, 480)  # Do 8 sati
-        self.sleep_minutes_spin.setSuffix(" min")
-        self.sleep_minutes_spin.setValue(60)
-        self.sleep_minutes_spin.setEnabled(False)
-        minutes_layout.addWidget(self.sleep_minutes_spin)
-        minutes_layout.addStretch()
-        
-        # Quit option
-        self.sleep_quit_check = QCheckBox("Quit application when timer expires")
-        self.sleep_quit_check.setEnabled(False)
-        
-        # Connect checkbox to enable/disable inputs
-        self.sleep_enable.stateChanged.connect(self._update_sleep_controls)
-        
-        sleep_layout.addWidget(self.sleep_enable)
-        sleep_layout.addLayout(minutes_layout)
-        sleep_layout.addWidget(self.sleep_quit_check)
-        
-        layout.addWidget(sleep_group)
-        layout.addStretch()
-        
-        # Load current sleep timer state from engine
-        self._load_sleep_timer_state()
-        
-        return widget
-    
-    def _update_sleep_controls(self, state):
-        """Enable/disable sleep timer controls based on checkbox"""
-        enabled = (state == Qt.CheckState.Checked.value)
-        self.sleep_minutes_spin.setEnabled(enabled)
-        self.sleep_quit_check.setEnabled(enabled)
-    
-    def _load_sleep_timer_state(self):
-        """Load current sleep timer state from engine"""
-        sleep_info = self.tray_wave.engine.get_sleep_timer_info()
-        if sleep_info and sleep_info["active"]:
-            self.sleep_enable.setChecked(True)
-            self.sleep_minutes_spin.setValue(sleep_info["minutes_set"])
-            self.sleep_quit_check.setChecked(sleep_info["quit_on_expire"])
-            self._update_sleep_controls(Qt.CheckState.Checked.value)
-    
     def select_style(self, style_name):
-        """Select a style"""
+        """Select a style."""
         print(f"🎯 Selecting style: {style_name}")
         self.selected_style = style_name
         
@@ -800,7 +642,7 @@ class StyleSettingsDialog(QDialog):
             widget.set_selected(name == style_name)
     
     def apply_settings(self):
-        """Apply the selected settings"""
+        """Apply the selected settings."""
         print(f"🔄 Applying style: {self.selected_style}")
         
         # Apply style
@@ -809,18 +651,7 @@ class StyleSettingsDialog(QDialog):
             self.tray_wave.change_menu_style(self.selected_style)
         else:
             # OSVEŽI MENU ČAK I AKO SE NIJE PROMENILA TEMA
-            # (u slučaju da su se dodale stanice)
             self.tray_wave._rebuild_menu()
-        
-        # Apply sleep timer settings
-        if self.sleep_enable.isChecked():
-            minutes = self.sleep_minutes_spin.value()
-            quit_app = self.sleep_quit_check.isChecked()
-            self.tray_wave.engine.set_sleep_timer(minutes, quit_app)
-            print(f"⏰ Sleep timer set: {minutes} min, quit: {quit_app}")
-        else:
-            self.tray_wave.engine.cancel_sleep_timer()
-            print("⏰ Sleep timer disabled")
         
         # EMITUJ SIGNAL DA SU STANICE PROMENJENE
         self.stations_modified.emit()
@@ -828,152 +659,3 @@ class StyleSettingsDialog(QDialog):
         # Zatvori dialog nakon Apply
         self.accept()
         print(f"✅ Settings applied, dialog closed")
-    
-    def load_categories(self):
-        """Load categories into list"""
-        self.categories_list.clear()
-        for category in self.manager.stations.keys():
-            self.categories_list.addItem(category)
-        if self.categories_list.count() > 0:
-            self.categories_list.setCurrentRow(0)
-    
-    def on_category_selected(self, current, previous):
-        """Load stations for selected category"""
-        self.stations_list.clear()
-        if current:
-            category = current.text()
-            for name, url in self.manager.stations.get(category, []):
-                self.stations_list.addItem(f"{name} - {url}")
-    
-    def add_category(self):
-        """Add new category"""
-        name, ok = QInputDialog.getText(self, "Add Category", "Category name:")
-        if ok and name:
-            if self.manager.add_category(name):
-                self.manager.save_stations()
-                self.load_categories()
-            else:
-                QMessageBox.warning(self, "Error", "Category already exists or invalid name!")
-    
-    def remove_category(self):
-        """Remove selected category"""
-        current = self.categories_list.currentItem()
-        if current:
-            reply = QMessageBox.question(
-                self, "Confirm", 
-                f"Remove category '{current.text()}'?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                self.manager.remove_category(current.text())
-                self.manager.save_stations()
-                self.load_categories()
-    
-    def add_station(self):
-        """Add new station to selected category"""
-        current_cat = self.categories_list.currentItem()
-        if not current_cat:
-            QMessageBox.warning(self, "Error", "Select a category first!")
-            return
-        
-        name, ok = QInputDialog.getText(self, "Add Station", "Station name:")
-        if not ok or not name:
-            return
-        
-        url, ok = QInputDialog.getText(self, "Add Station", "Station URL:")
-        if ok and url:
-            category = current_cat.text()
-            if self.manager.add_station(category, name, url):
-                self.manager.save_stations()
-                self.on_category_selected(current_cat, None)
-            else:
-                QMessageBox.warning(self, "Error", "Failed to add station!")
-    
-    def remove_station(self):
-        """Remove selected station"""
-        current_cat = self.categories_list.currentItem()
-        current_station = self.stations_list.currentRow()
-        
-        if current_cat and current_station >= 0:
-            reply = QMessageBox.question(
-                self, "Confirm",
-                "Remove this station?",
-                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No
-            )
-            if reply == QMessageBox.StandardButton.Yes:
-                category = current_cat.text()
-                if self.manager.remove_station(category, current_station):
-                    self.manager.save_stations()
-                    self.on_category_selected(current_cat, None)
-
-
-class AboutDialog(QDialog):
-    """About dialog for TrayWave"""
-    
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("About TrayWave")
-        self.setMinimumSize(400, 300)
-        self.setMaximumSize(450, 350)
-        self.init_ui()
-    
-    def init_ui(self):
-        """Initialize About dialog UI"""
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(20, 20, 20, 20)
-        layout.setSpacing(10)
-        
-        # Title
-        title = QLabel("TrayWave")
-        title_font = title.font()
-        title_font.setPointSize(16)
-        title_font.setBold(True)
-        title.setFont(title_font)
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(title)
-        
-        # Version
-        version = QLabel("Version: 0.1.6")
-        version.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(version)
-        
-        # Separator
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        layout.addWidget(separator)
-        
-        # Description
-        desc = QLabel("A lightweight radio player for system tray")
-        desc.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        desc.setWordWrap(True)
-        layout.addWidget(desc)
-        
-        # Author
-        author = QLabel("© 2026 Košava")
-        author.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(author)
-        
-        # GitHub link
-        github = QLabel('<a href="https://github.com/Kosava/traywave">https://github.com/Kosava/traywave</a>')
-        github.setOpenExternalLinks(True)
-        github.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(github)
-        
-        # License
-        license_label = QLabel("MIT License")
-        license_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(license_label)
-        
-        # Spacer
-        layout.addStretch()
-        
-        # Close button
-        button_layout = QHBoxLayout()
-        close_btn = QPushButton("Close")
-        close_btn.clicked.connect(self.accept)
-        close_btn.setFixedWidth(100)
-        button_layout.addStretch()
-        button_layout.addWidget(close_btn)
-        button_layout.addStretch()
-        layout.addLayout(button_layout)

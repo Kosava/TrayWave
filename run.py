@@ -1,65 +1,55 @@
 #!/usr/bin/env python3
 """
-TrayWave launcher - Corrected for actual structure
+Run TrayWave directly from source
 """
-import sys
 import os
+import sys
 
-# CRITICAL: Force Qt to use its own rendering instead of native menus
-# This MUST be set BEFORE importing PyQt6
-os.environ['QT_QPA_PLATFORMTHEME'] = ''
-os.environ['QT_STYLE_OVERRIDE'] = 'Fusion'
-
-# Add the project root to Python path
+# Add project root to Python path
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtCore import Qt
+print(f"🚀 Starting TrayWave from source...")
+print(f"📁 Project root: {project_root}")
 
-def main():
-    """Main application entry point"""
-    # Import TrayWave from actual location: traywave/ui/tray_main.py
-    try:
-        from traywave.ui.tray_main import TrayWave
-    except ModuleNotFoundError as e:
-        print(f"ERROR: Cannot import TrayWave: {e}")
-        print(f"\nCurrent directory: {os.getcwd()}")
-        print(f"Project root: {project_root}")
-        print(f"\nPython path:")
-        for p in sys.path:
-            print(f"  - {p}")
-        
-        # Check if files exist
-        tray_main_path = os.path.join(project_root, "traywave", "ui", "tray_main.py")
-        print(f"\nChecking for tray_main.py at: {tray_main_path}")
-        print(f"Exists: {os.path.exists(tray_main_path)}")
-        sys.exit(1)
-    except Exception as e:
-        print(f"ERROR during import: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    
-    # Create Qt application
-    app = QApplication(sys.argv)
-    
-    # Force Qt style instead of native platform menus
-    app.setAttribute(Qt.ApplicationAttribute.AA_DontUseNativeMenuBar, True)
-    app.setQuitOnLastWindowClosed(False)
-    
-    # Create and show tray icon
-    try:
-        tray = TrayWave()
-        print("✅ TrayWave started successfully!")
-    except Exception as e:
-        print(f"ERROR: Failed to create TrayWave: {e}")
-        import traceback
-        traceback.print_exc()
-        sys.exit(1)
-    
-    # Run application
-    sys.exit(app.exec())
+# Check for required packages
+try:
+    from PyQt6.QtWidgets import QApplication
+    print("✓ PyQt6 is available")
+except ImportError as e:
+    print(f"❌ PyQt6 is not installed: {e}")
+    print("Install it with: pip install PyQt6")
+    sys.exit(1)
 
-if __name__ == "__main__":
+# Check if icons exist
+icons_dir = os.path.join(project_root, "resources", "icons")
+if not os.path.exists(icons_dir):
+    print(f"⚠️ Icons directory not found: {icons_dir}")
+    print("Creating icons directory...")
+    os.makedirs(icons_dir, exist_ok=True)
+
+# Check for icons
+required_icons = ["traywave-playing.png", "traywave-stopped.png", "traywave-muted.png"]
+missing_icons = []
+for icon in required_icons:
+    icon_path = os.path.join(icons_dir, icon)
+    if not os.path.exists(icon_path):
+        missing_icons.append(icon)
+
+if missing_icons:
+    print(f"⚠️ Missing icons: {missing_icons}")
+    print("To create icons, run: python create_icons.py")
+    print("⚠️ Continuing with fallback icons...")
+
+try:
+    from traywave.__main__ import main
+    print("✓ TrayWave imported successfully")
+    print("\n" + "="*50)
+    print("Starting TrayWave...")
+    print("="*50 + "\n")
     main()
+except Exception as e:
+    print(f"❌ Error starting TrayWave: {e}")
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)

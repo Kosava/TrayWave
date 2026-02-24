@@ -22,7 +22,7 @@ TrayWave focuses on simplicity, responsiveness, and low system impact while prov
 - 📂 Radio stations organized by categories
 - 🧾 Stations stored in editable JSON configuration
 - ⚙️ Settings dialog for managing stations and categories
-- 💤 Sleep timer (planned)
+- 💤 Sleep timer 
 
 ---
 

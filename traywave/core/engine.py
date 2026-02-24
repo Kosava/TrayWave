@@ -5,10 +5,14 @@ from PyQt6.QtCore import QUrl, QTimer, pyqtSignal, QObject, QThread
 from PyQt6.QtMultimedia import QMediaPlayer, QAudioOutput, QMediaMetaData
 from typing import Callable, List
 import json
+import logging
 import os
 import re
-import struct
+import stat
+import time
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 # Pokušaj importovati requests
 try:
@@ -16,8 +20,7 @@ try:
     HAS_REQUESTS = True
 except ImportError:
     HAS_REQUESTS = False
-    print("⚠️  'requests' biblioteka nije instalirana. Metadata neće raditi za FLAC/OGG.")
-    print("Instaliraj sa: pip install requests")
+    logger.warning("'requests' biblioteka nije instalirana. Metadata neće raditi za FLAC/OGG. Instaliraj sa: pip install requests")
 
 
 class ConfigManager:
@@ -40,6 +43,7 @@ class ConfigManager:
         """Get configuration directory path"""
         config_dir = os.path.join(Path.home(), ".config", "traywave")
         os.makedirs(config_dir, exist_ok=True)
+        os.chmod(config_dir, stat.S_IRWXU)  # 700 — samo vlasnik
         return config_dir
     
     def _load_config(self) -> dict:
@@ -52,17 +56,20 @@ class ConfigManager:
                         if key not in config:
                             config[key] = value
                     return config
-        except Exception:
-            pass
+        except json.JSONDecodeError as e:
+            logger.warning(f"Config fajl je oštećen, koristim default vrijednosti: {e}")
+        except OSError as e:
+            logger.warning(f"Ne mogu pročitati config fajl: {e}")
         return self.default_config.copy()
     
     def save_config(self):
         """Save configuration to file"""
         try:
-            with open(self.config_file, 'w') as f:
+            fd = os.open(self.config_file, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, 'w') as f:
                 json.dump(self.config, f, indent=2)
-        except Exception:
-            pass
+        except OSError as e:
+            logger.error(f"Ne mogu sačuvati config: {e}")
     
     def get(self, key: str, default=None):
         """Get configuration value"""
@@ -115,6 +122,7 @@ class MetadataWorker(QThread):
     def stop(self):
         """Zaustavi worker"""
         self.running = False
+        self.requestInterruption()
     
     def run(self):
         """Glavna petlja worker thread-a"""
@@ -122,108 +130,191 @@ class MetadataWorker(QThread):
             return
         
         self.running = True
+        logger.debug(f"MetadataWorker started for: {self.url}")
         
-        try:
-            # Napravi request sa ICY-MetaData headerom
-            headers = {
-                'Icy-MetaData': '1',
-                'User-Agent': 'TrayWave/1.0'
-            }
-            
-            response = requests.get(
-                self.url, 
-                headers=headers, 
-                stream=True,
-                timeout=10
-            )
-            
-            # Izvuci metaint iz headera
-            metaint = None
-            if 'icy-metaint' in response.headers:
+        while self.running and not self.isInterruptionRequested():
+            response = None
+            try:
+                headers = {
+                    'Icy-MetaData': '1',
+                    'User-Agent': 'Mozilla/5.0 TrayWave/1.0'
+                }
+                
+                response = requests.get(
+                    self.url,
+                    headers=headers,
+                    stream=True,
+                    timeout=15
+                )
+                
+                # Postavi socket timeout da spriječimo blokirajući read()
                 try:
-                    metaint = int(response.headers['icy-metaint'])
-                    print(f"📡 ICY metaint: {metaint}")
-                except:
+                    sock = response.raw._fp.fp.raw._sock
+                    sock.settimeout(5.0)
+                except Exception:
                     pass
-            
-            if not metaint:
-                print("⚠️  Stream ne podržava ICY metadata")
-                return
-            
-            # Čitaj stream i parsiraj metadata
-            buffer = b''
-            bytes_until_metadata = metaint
-            
-            for chunk in response.iter_content(chunk_size=4096):
-                if not self.running:
-                    break
                 
-                buffer += chunk
+                metaint = None
+                if 'icy-metaint' in response.headers:
+                    try:
+                        metaint = int(response.headers['icy-metaint'])
+                        logger.debug(f"ICY metaint: {metaint}")
+                    except (ValueError, TypeError):
+                        pass
                 
-                while len(buffer) >= bytes_until_metadata:
-                    # Preskoči audio podatke
-                    buffer = buffer[bytes_until_metadata:]
-                    
-                    if len(buffer) < 1:
+                if not metaint:
+                    logger.debug("Nema icy-metaint, koristim polling fallback")
+                    self._poll_metadata_fallback(response)
+                    response = None  # fallback zatvara response sam
+                    return
+                
+                # Čitanje ICY stream-a: audio bajti → 1 bajt dužine → metadata blok
+                while self.running and not self.isInterruptionRequested():
+                    audio = response.raw.read(metaint)
+                    if not audio or len(audio) < metaint:
+                        logger.debug("Stream prekinut, rekonektovanje...")
                         break
                     
-                    # Pročitaj metadata length (prvi bajt * 16)
-                    meta_length = buffer[0] * 16
-                    buffer = buffer[1:]
+                    length_byte = response.raw.read(1)
+                    if not length_byte:
+                        break
+                    meta_length = length_byte[0] * 16
                     
                     if meta_length > 0:
-                        if len(buffer) >= meta_length:
-                            # Izvuci metadata
-                            meta_bytes = buffer[:meta_length]
-                            buffer = buffer[meta_length:]
-                            
-                            # Dekodiraj metadata
+                        meta_bytes = response.raw.read(meta_length)
+                        if meta_bytes:
                             try:
                                 meta_string = meta_bytes.decode('utf-8', errors='ignore').strip('\x00')
+                                logger.debug(f"Raw metadata: {meta_string[:80]}")
                                 self._parse_metadata(meta_string)
-                            except:
-                                pass
-                            
-                            bytes_until_metadata = metaint
-                        else:
-                            # Nedovoljno podataka, sačekaj još
-                            bytes_until_metadata = 0
-                            break
-                    else:
-                        bytes_until_metadata = metaint
-        
-        except Exception as e:
-            print(f"❌ Metadata worker greška: {e}")
+                            except Exception as e:
+                                logger.debug(f"Parse error: {e}")
+                
+            except Exception as e:
+                logger.debug(f"Metadata worker greška: {e}")
+            finally:
+                if response is not None:
+                    try:
+                        response.close()
+                    except Exception:
+                        pass
+                    
+            # Kratka pauza prije rekonektovanja (100ms koraci za brzi izlaz)
+            for _ in range(30):
+                if not self.running or self.isInterruptionRequested():
+                    break
+                time.sleep(0.1)
     
+    def _poll_metadata_fallback(self, initial_response):
+        """Fallback za streamove bez icy-metaint: polling svakih 15s"""
+        
+        # Provjeri headere prvog responsa
+        self._check_headers_for_title(initial_response.headers)
+        # Pročitaj prvih 4KB i traži StreamTitle u body-u
+        try:
+            chunk = b''
+            for c in initial_response.iter_content(chunk_size=1024):
+                chunk += c
+                if len(chunk) >= 4096:
+                    break
+            text = chunk.decode('utf-8', errors='ignore')
+            m = re.search(r"StreamTitle='([^']*)'", text)
+            if m and m.group(1).strip():
+                self._parse_metadata(text)
+        except Exception:
+            pass
+        try:
+            initial_response.close()
+        except Exception:
+            pass
+        
+        # Polling svakih 15s (u 100ms koracima za brzi izlaz)
+        while self.running and not self.isInterruptionRequested():
+            for _ in range(150):  # 15s = 150 x 100ms
+                if not self.running or self.isInterruptionRequested():
+                    return
+                time.sleep(0.1)
+            if not self.running or self.isInterruptionRequested():
+                break
+            try:
+                r = requests.get(
+                    self.url,
+                    headers={'Icy-MetaData': '1', 'User-Agent': 'TrayWave/1.0'},
+                    stream=True,
+                    timeout=8
+                )
+                self._check_headers_for_title(r.headers)
+                try:
+                    chunk = b''
+                    for c in r.iter_content(chunk_size=1024):
+                        chunk += c
+                        if len(chunk) >= 4096:
+                            break
+                    text = chunk.decode('utf-8', errors='ignore')
+                    if "StreamTitle='" in text:
+                        self._parse_metadata(text)
+                except Exception:
+                    pass
+                try:
+                    r.close()
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.debug(f"Polling fallback greška: {e}")
+
+    def _check_headers_for_title(self, headers):
+        """Izvuci StreamTitle iz HTTP response headera"""
+        for key in headers:
+            if key.lower() in ('streamtitle', 'x-current-song'):
+                val = headers[key].strip()
+                if val and val != self.last_title:
+                    self.last_title = val
+                    if ' - ' in val:
+                        parts = val.split(' - ', 1)
+                        self.metadata_found.emit(parts[0].strip(), parts[1].strip())
+                    else:
+                        self.metadata_found.emit('', val)
+                return
+
+    def _sanitize_metadata(self, text: str, max_len: int = 200) -> str:
+        """Sanitize metadata string — ukloni kontrolne karaktere i ograniči dužinu"""
+        if not text:
+            return ""
+        # Ukloni kontrolne karaktere (osim tab/newline koji su benign)
+        cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+        return cleaned[:max_len].strip()
+
     def _parse_metadata(self, meta_string: str):
         """Parsiraj metadata string"""
         try:
             # Traži StreamTitle
             match = re.search(r"StreamTitle='([^']*)'", meta_string)
             if match:
-                title = match.group(1).strip()
-                
+                raw_title = match.group(1)
+                title = self._sanitize_metadata(raw_title)
+
                 if title and title != self.last_title:
                     self.last_title = title
-                    
+                    logger.debug(f"Worker parsed: '{title}'")
+
                     # Podeli na artist i title
                     if ' - ' in title:
                         parts = title.split(' - ', 1)
                         artist = parts[0].strip()
                         song = parts[1].strip()
-                        print(f"🎵 Metadata: {artist} - {song}")
+                        logger.debug(f"Metadata: {artist} - {song}")
                         self.metadata_found.emit(artist, song)
                     elif ': ' in title:
                         parts = title.split(': ', 1)
                         artist = parts[0].strip()
                         song = parts[1].strip()
-                        print(f"🎵 Metadata: {artist} - {song}")
+                        logger.debug(f"Metadata: {artist} - {song}")
                         self.metadata_found.emit(artist, song)
                     else:
-                        print(f"🎵 Metadata: {title}")
+                        logger.debug(f"Metadata: {title}")
                         self.metadata_found.emit("", title)
         except Exception as e:
-            print(f"Parse error: {e}")
+            logger.debug(f"Parse error: {e}")
 
 
 class AudioEngine(QObject):
@@ -252,7 +343,6 @@ class AudioEngine(QObject):
         self._volume_changed_callbacks: List[Callable] = []
         self._icon_changed_callbacks: List[Callable] = []
         self._station_changed_callbacks: List[Callable] = []
-        self._metadata_callbacks: List[Callable] = []
         
         # Sleep timer
         self.sleep_timer = None
@@ -280,10 +370,9 @@ class AudioEngine(QObject):
         self.metadata_timer.timeout.connect(self._check_metadata)
         self.metadata_timer.setInterval(5000)
         
-        # Timer za update sleep timer display-a
+        # Timer za update sleep timer display-a (pokreće se samo kad je sleep aktivan)
         self.sleep_update_timer = QTimer()
         self.sleep_update_timer.timeout.connect(self._update_sleep_display)
-        self.sleep_update_timer.start(60000)  # Svaki minut
 
     # === SLEEP TIMER METODE ===
     
@@ -301,10 +390,13 @@ class AudioEngine(QObject):
             self.sleep_timer.timeout.connect(self._on_sleep_timeout)
             self.sleep_timer.start(minutes * 60 * 1000)  # min → ms
             
+            # Pokreni display update timer
+            self.sleep_update_timer.start(60000)  # Svaki minut
+            
             # Sačuvaj u config
             self.config.set_sleep_timer(minutes, quit_on_expire)
             
-            print(f"⏰ Sleep timer set: {minutes} min, quit: {quit_on_expire}")
+            logger.debug(f"Sleep timer set: {minutes} min, quit: {quit_on_expire}")
             self.sleep_timer_changed.emit(True, minutes)
     
     def cancel_sleep_timer(self):
@@ -313,13 +405,15 @@ class AudioEngine(QObject):
             self.sleep_timer.stop()
             self.sleep_timer = None
         
+        self.sleep_update_timer.stop()
+        
         self.sleep_minutes = 0
         self.sleep_quit_on_expire = False
         
         # Sačuvaj u config
         self.config.set_sleep_timer(0, False)
         
-        print("⏰ Sleep timer cancelled")
+        logger.debug("Sleep timer cancelled")
         self.sleep_timer_changed.emit(False, 0)
     
     def get_sleep_timer_info(self):
@@ -346,7 +440,7 @@ class AudioEngine(QObject):
     
     def _on_sleep_timeout(self):
         """Handle sleep timer expiration"""
-        print("⏰ Sleep timer expired")
+        logger.debug("Sleep timer expired")
         
         # Stop playback
         self.stop()
@@ -377,11 +471,10 @@ class AudioEngine(QObject):
             self.metadata_worker.stop()
             self.metadata_worker.wait(1000)
         
-        # Odluči koji sistem koristiti
-        # Za FLAC/OGG ili ako PyQt ne radi dobro, koristi worker
-        if HAS_REQUESTS and ('.flac' in url.lower() or '.ogg' in url.lower() or 'flac' in bitrate.lower()):
+        # Koristi worker za sve HTTP streamove - QMediaPlayer ne čita ICY metadata pouzdano
+        if HAS_REQUESTS and (url.startswith('http://') or url.startswith('https://')):
             self.use_worker = True
-            print(f"🎵 Koristim requests metadata worker za: {station_name}")
+            logger.debug(f"MetadataWorker started for: {station_name}")
             self.metadata_worker.set_url(url)
             self.metadata_worker.start()
             self.metadata_timer.stop()
@@ -483,7 +576,7 @@ class AudioEngine(QObject):
         """Get last played station"""
         return self.config.get("last_station")
 
-    def _parse_metadata(self, metadata: str):
+    def _split_artist_title(self, metadata: str):
         """Parse StreamTitle metadata"""
         if not metadata:
             return None, None
@@ -504,6 +597,7 @@ class AudioEngine(QObject):
 
     def _on_worker_metadata(self, artist: str, title: str):
         """Callback kada worker pronađe metadata"""
+        logger.debug(f"Worker metadata: artist='{artist}' title='{title}'")
         if artist != self.current_artist or title != self.current_song:
             self.current_artist = artist if artist else None
             self.current_song = title if title else None
@@ -523,11 +617,11 @@ class AudioEngine(QObject):
             
             try:
                 title_value = metadata.stringValue(QMediaMetaData.Key.Title)
-            except:
+            except Exception:
                 return
             
             if title_value and isinstance(title_value, str) and len(title_value) > 0:
-                artist, title = self._parse_metadata(title_value)
+                artist, title = self._split_artist_title(title_value)
                 if artist != self.current_artist or title != self.current_song:
                     self.current_artist = artist
                     self.current_song = title
@@ -553,8 +647,8 @@ class AudioEngine(QObject):
         self._station_changed_callbacks.append(callback)
     
     def on_metadata_changed(self, callback: Callable):
-        """Register callback for metadata changes"""
-        self._metadata_callbacks.append(callback)
+        """Register callback for metadata changes via signal"""
+        self.metadata_changed.connect(callback)
     
     def on_sleep_timer_changed(self, callback: Callable):
         """Register callback for sleep timer changes"""
@@ -573,16 +667,11 @@ class AudioEngine(QObject):
             callback()
     
     def _notify_metadata_changed(self, artist: str, title: str):
-        """Notify all metadata callbacks"""
+        """Notify all metadata listeners via signal"""
         try:
             self.metadata_changed.emit(artist or "", title or "")
-        except:
+        except Exception:
             pass
-        for callback in self._metadata_callbacks:
-            try:
-                callback(artist, title)
-            except:
-                pass
     
     def _on_playback_changed(self, state):
         self._notify_icon_changed()
